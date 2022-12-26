@@ -4,15 +4,18 @@ Create an annotator app:
 
 **Main page:** (folder selection)
 
+```
 -----------------------------
 |     SELECT THE FOLDER     |
 |   ---------------------   |
 |   folder_path_selection   |
 |   ---------------------   |
 -----------------------------
+```
 
 **Image page:**
 
+```
 -----------------------------
 |                           |
 |          IMAGE            |
@@ -22,6 +25,7 @@ Create an annotator app:
 -----------------------------
 |          EXPORT           |
 -----------------------------
+```
 
 ## Expectations
 
