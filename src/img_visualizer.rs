@@ -1,11 +1,10 @@
 use std::path::PathBuf;
 
 use iced::{
-    widget::{button, row, Row},
-    widget::{container, image},
+    widget::{button, column, row, Row},
+    widget::{container, image, text, Column},
     Element, Renderer, Sandbox,
 };
-use iced_native::Renderer;
 
 #[path = "render_image.rs"]
 mod render_image;
@@ -37,6 +36,34 @@ fn get_all_images(folder_path: String) -> Vec<PathBuf> {
     output
 }
 
+// const BUTTON_TEXTS: Vec<&str> = vec!["Mark as correct", "<"];
+
+// fn create_button<'a>(button_text: &'a str) -> Element<'a, render_image::Message, Renderer> {
+//     // Row::with_children(
+//     //     button_texts
+//     //         .iter()
+//     //         .map(|btn_text| container(row![button(*btn_text)]))
+//     //         .collect()
+//     // ).into()
+//     row![button(button_text)].into()
+// }
+
+// fn create_buttons<'a>(buttons: Vec::<Element<'a, render_image::Message, Renderer>>) -> Element<'a, render_image::Message, Renderer> {
+//     Row::with_children(buttons).into()
+// }
+
+// // let rows = vec![
+// fn create_btn_row() -> Element<'static, render_image::Message> {
+//     // let buttons: Element<render_image::Message> = BUTTON_TEXTS.iter().map(|btn_text| {
+//     //     create_button(&btn_text)
+//     // }).collect();
+//     // buttons.into()
+//     // let mut row: Row<'static, _, _> = Row::new().push(
+//     //     BUTTON_TEXTS.iter().map(|btn_text| button(*btn_text).into())
+//     // );
+//     row.into()
+// }
+
 impl Sandbox for FolderVisualizer {
     type Message = render_image::Message;
 
@@ -54,31 +81,30 @@ impl Sandbox for FolderVisualizer {
     }
 
     fn view(&self) -> iced::Element<'_, Self::Message, Renderer> {
-        fn create_buttons<'a>(_: Vec<&str>) -> Element<'a, render_image::Message, Renderer> {
-            // Row::with_children(
-            //     button_texts
-            //         .iter()
-            //         .map(|btn_text| button("sample".to_string()))
-            //         .collect(),
-            // )
-            row![button("sample")].into()
-        }
+        let export_btn = row![button(text("Export").size(40))];
+        let previous_btn = row![button(text("Previous").size(40))];
+        let next_btn = row![button(text("Next").size(40))];
+        let img_row = row![image::viewer(
+            fetch_image(self.all_images.clone(), &self.curr_idx).unwrap()
+        )]
+        .align_items(iced::Alignment::Center)
+        .width(iced::Length::Fill)
+        .height(iced::Length::FillPortion(2));
+        // .align_items(iced::Alignment::Center);
 
-        let rows = vec![
-            row![image::viewer(
-                fetch_image(self.all_images.clone(), &self.curr_idx).unwrap()
-            )],
-            row![create_buttons(vec!["Mark as correct", "<"])],
-        ];
-
-        // container()
-            // row![create_buttons(vec![
-            //     "Mark as Correct",
-            //     "<",
-            //     "Reset",
-            //     ">",
-            //     "Mark as Wrong"
-            // ])],
+        container(
+            column![
+                img_row,
+                row![previous_btn, export_btn, next_btn]
+                    .spacing(20)
+                    .padding(10)
+            ]
+            .align_items(iced::Alignment::Center),
+        )
+        .center_y()
+        .align_x(iced::alignment::Horizontal::Center)
+        .align_y(iced::alignment::Vertical::Center)
+        .into()
     }
 
     fn update(&mut self, _: Self::Message) {
