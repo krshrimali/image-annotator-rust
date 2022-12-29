@@ -1,4 +1,4 @@
-use iced::Length;
+// use iced::Length;
 
 #[derive(Debug, PartialEq, Clone, Eq, Copy)]
 pub enum ThemeType {
@@ -9,6 +9,10 @@ pub enum ThemeType {
 #[derive(Debug, Clone)]
 pub enum Message {
     ThemeChanged(ThemeType),
+    Previous(),
+    Next(),
+    MarkAsCorrect(),
+    MarkAsIncorrect(),
 }
 
 // pub fn get_image_handle<'a>(img_path: String) -> Container<'a, Message> {

@@ -2,18 +2,22 @@ use std::path::PathBuf;
 
 use iced::{
     widget::{button, column, row, Row},
-    widget::{container, image, text, Column},
-    Element, Renderer, Sandbox,
+    widget::{container, image, text, Button, Column},
+    Element, Renderer, Sandbox, Theme,
 };
+
+use self::render_image::Message;
 
 #[path = "render_image.rs"]
 mod render_image;
 
 #[derive(Default, Debug)]
 pub struct FolderVisualizer {
+    theme: Theme,
     folder_path: String,
     curr_idx: usize,
     all_images: Vec<PathBuf>,
+    correct_items: Vec<bool>,
 }
 
 fn fetch_image(
@@ -36,54 +40,36 @@ fn get_all_images(folder_path: String) -> Vec<PathBuf> {
     output
 }
 
-// const BUTTON_TEXTS: Vec<&str> = vec!["Mark as correct", "<"];
-
-// fn create_button<'a>(button_text: &'a str) -> Element<'a, render_image::Message, Renderer> {
-//     // Row::with_children(
-//     //     button_texts
-//     //         .iter()
-//     //         .map(|btn_text| container(row![button(*btn_text)]))
-//     //         .collect()
-//     // ).into()
-//     row![button(button_text)].into()
-// }
-
-// fn create_buttons<'a>(buttons: Vec::<Element<'a, render_image::Message, Renderer>>) -> Element<'a, render_image::Message, Renderer> {
-//     Row::with_children(buttons).into()
-// }
-
-// // let rows = vec![
-// fn create_btn_row() -> Element<'static, render_image::Message> {
-//     // let buttons: Element<render_image::Message> = BUTTON_TEXTS.iter().map(|btn_text| {
-//     //     create_button(&btn_text)
-//     // }).collect();
-//     // buttons.into()
-//     // let mut row: Row<'static, _, _> = Row::new().push(
-//     //     BUTTON_TEXTS.iter().map(|btn_text| button(*btn_text).into())
-//     // );
-//     row.into()
-// }
-
 impl Sandbox for FolderVisualizer {
     type Message = render_image::Message;
 
     fn new() -> FolderVisualizer {
         let folder_path: String = "sample_folder".into();
-        FolderVisualizer {
+        let mut folder_obj = FolderVisualizer {
+            theme: Theme::Dark,
             folder_path: folder_path.clone(),
             curr_idx: 0,
             all_images: get_all_images(folder_path),
-        }
+            correct_items: vec![],
+        };
+        folder_obj.correct_items = vec![false; folder_obj.all_images.len()];
+        folder_obj
     }
 
     fn title(&self) -> String {
-        String::from("Image Annotator")
+        format!("Image {0}", self.curr_idx)
     }
 
     fn view(&self) -> iced::Element<'_, Self::Message, Renderer> {
-        let export_btn = row![button(text("Export").size(40))];
-        let previous_btn = row![button(text("Previous").size(40))];
-        let next_btn = row![button(text("Next").size(40))];
+        let export_btn = button(text("Export").size(40));
+        let correct_btn =
+            button(text("Mark as Correct").size(40)).on_press(Message::MarkAsCorrect());
+        let incorrect_btn =
+            button(text("Mark as Incorrect").size(40)).on_press(Message::MarkAsIncorrect());
+        let previous_btn: Button<Self::Message, Renderer> =
+            button(text("Previous").size(40)).on_press(Message::Previous());
+        let next_btn: Button<Self::Message, Renderer> =
+            button(text("Next").size(40)).on_press(Message::Next());
         let img_row = row![image::viewer(
             fetch_image(self.all_images.clone(), &self.curr_idx).unwrap()
         )]
@@ -95,6 +81,7 @@ impl Sandbox for FolderVisualizer {
         container(
             column![
                 img_row,
+                row![correct_btn, incorrect_btn].spacing(20).padding(10),
                 row![previous_btn, export_btn, next_btn]
                     .spacing(20)
                     .padding(10)
@@ -107,14 +94,30 @@ impl Sandbox for FolderVisualizer {
         .into()
     }
 
-    fn update(&mut self, _: Self::Message) {
-        // match message {
-        //     render_image::Message::ThemeChanged(theme) => {
-        //         self.theme = match theme {
-        //             render_image::ThemeType::Dark => Theme::Dark,
-        //             render_image::ThemeType::Light => Theme::Light,
-        //         }
-        //     }
-        // }
+    fn update(&mut self, message: Self::Message) {
+        match message {
+            render_image::Message::ThemeChanged(theme) => {
+                self.theme = match theme {
+                    render_image::ThemeType::Dark => Theme::Dark,
+                    render_image::ThemeType::Light => Theme::Light,
+                }
+            }
+            render_image::Message::Next() => {
+                self.curr_idx += 1;
+            }
+            render_image::Message::Previous() => {
+                self.curr_idx -= 1;
+            }
+            render_image::Message::MarkAsCorrect() => {
+                self.correct_items[self.curr_idx] = true;
+            }
+            render_image::Message::MarkAsIncorrect() => {
+                self.correct_items[self.curr_idx] = false;
+            }
+        }
+    }
+
+    fn theme(&self) -> Theme {
+        self.theme.clone()
     }
 }
