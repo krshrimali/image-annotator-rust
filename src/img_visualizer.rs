@@ -1,15 +1,14 @@
-use std::{path::PathBuf, collections::HashMap};
+use std::path::PathBuf;
 
 use iced::{
-    widget::{button, column, row, Row},
-    widget::{container, image, text, Button, Column},
-    Element, Renderer, Sandbox, Theme,
+    widget::{button, column, row},
+    widget::{container, image, text, Button}, Theme, Sandbox, Renderer,
 };
 
 use self::render_image::Message;
-
-use serde::{Serialize, Deserialize};
-use serde_json::{Number, Value, json};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use notify_rust::Notification;
 
 #[path = "render_image.rs"]
 mod render_image;
@@ -50,22 +49,16 @@ fn update_json(json_obj: &mut AnnotatedStore, idx_to_update: i32, new_value: boo
 }
 
 fn write_json(json_obj: &AnnotatedStore) {
-    std::fs::write("output.json", serde_json::to_string_pretty(json_obj).unwrap());
+    std::fs::write(
+        "output.json",
+        serde_json::to_string_pretty(json_obj).unwrap(),
+    );
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Default)]
 struct AnnotatedStore {
     indices: Vec<i32>,
-    values: Vec<bool>
-}
-
-impl Default for AnnotatedStore {
-    fn default() -> Self {
-        AnnotatedStore {
-            indices: vec![],
-            values: vec![]
-        }
-    }
+    values: Vec<bool>,
 }
 
 fn init_json_obj(total_len: usize) -> AnnotatedStore {
@@ -159,6 +152,7 @@ impl Sandbox for FolderVisualizer {
             }
             render_image::Message::Export() => {
                 write_json(&self.json_obj);
+                let _ = Notification::new().summary("Exported to output.json").body("See this is the detailed body").show();
             }
         }
     }
