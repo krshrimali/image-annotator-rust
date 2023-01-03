@@ -137,7 +137,14 @@ impl Steps {
     }
 
     pub fn update(&mut self, msg: StepMessage) {
-        let (new_idx, new_indices, new_values, new_correct_items) = self.steps[self.current].update(msg, &mut self.curr_idx, self.json_obj.indices.clone(), self.json_obj.values.clone(), &mut self.correct_items);
+        let (new_idx, new_indices, new_values, new_correct_items) = self.steps[self.current]
+            .update(
+                msg,
+                &mut self.curr_idx,
+                self.json_obj.indices.clone(),
+                self.json_obj.values.clone(),
+                &mut self.correct_items,
+            );
         self.curr_idx = new_idx;
         self.json_obj.indices = new_indices;
         self.json_obj.values = new_values;

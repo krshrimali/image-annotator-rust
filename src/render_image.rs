@@ -3,12 +3,13 @@
 use std::path::PathBuf;
 
 use iced::{
-    widget::{button, container, image, row, text},
+    widget::{button, container, row, text},
     Element, Renderer,
 };
 use iced_native::{
     column,
-    widget::{column, Button, Column},
+    image::Handle,
+    widget::{column, image, Button, Column},
 };
 use notify_rust::Notification;
 use serde::{Deserialize, Serialize};
@@ -46,7 +47,14 @@ pub enum Step {
 }
 
 impl<'a> Step {
-    pub fn update(&'a mut self, msg: StepMessage, curr_idx: &mut usize, json_indices: Vec<i32>, json_values: Vec<bool>, correct_items: &mut Vec<bool>) -> (usize, Vec<i32>, Vec<bool>, Vec<bool>) {
+    pub fn update(
+        &'a mut self,
+        msg: StepMessage,
+        curr_idx: &mut usize,
+        json_indices: Vec<i32>,
+        json_values: Vec<bool>,
+        correct_items: &mut Vec<bool>,
+    ) -> (usize, Vec<i32>, Vec<bool>, Vec<bool>) {
         let mut json_obj = AnnotatedStore::default();
         json_obj.indices = json_indices;
         json_obj.values = json_values;
@@ -76,7 +84,12 @@ impl<'a> Step {
             }
         };
 
-        (*curr_idx, json_obj.indices.clone(), json_obj.values.clone(), correct_items.to_vec())
+        (
+            *curr_idx,
+            json_obj.indices.clone(),
+            json_obj.values.clone(),
+            correct_items.to_vec(),
+        )
     }
 
     pub fn can_continue(&self) -> bool {
@@ -116,21 +129,23 @@ impl<'a> Step {
             button(text("Next").size(40)).on_press(StepMessage::Next());
         let img_row = row![image::viewer(
             fetch_image(obj.all_images.clone(), &obj.curr_idx).unwrap()
-        )]
-        .align_items(iced::Alignment::Center)
-        .width(iced::Length::Fill)
-        .height(iced::Length::FillPortion(2));
+        )];
+        // .align_items(iced::Alignment::Center)
+        // .width(iced::Length::Fill)
+        // .height(iced::Length::FillPortion(2));
+        println!("obj curr_idx: {:?}", obj.curr_idx);
+        println!("img row: {:?}", obj.all_images.clone());
         // .align_items(iced::Alignment::Center);
 
         // container(
-            column![
-                img_row,
-                row![correct_btn, incorrect_btn].spacing(20).padding(10),
-                row![previous_btn, export_btn, next_btn]
-                    .spacing(20)
-                    .padding(10)
-            ]
-            .align_items(iced::Alignment::Center)
+        column![
+            img_row,
+            row![correct_btn, incorrect_btn].spacing(20).padding(10),
+            row![previous_btn, export_btn, next_btn]
+                .spacing(20)
+                .padding(10)
+        ]
+        // .align_items(iced::Alignment::Center)
         // )
         // .center_y()
         // .align_x(iced::alignment::Horizontal::Center)
@@ -151,14 +166,11 @@ impl<'a> Step {
     }
 }
 
-pub fn fetch_image(
-    all_images: Vec<PathBuf>,
-    curr_idx: &usize,
-) -> Result<image::Handle, reqwest::Error> {
+pub fn fetch_image(all_images: Vec<PathBuf>, curr_idx: &usize) -> Result<Handle, reqwest::Error> {
     // TODO: Set a default image to show that we are waiting for an image...// folder is empty
     // TODO: Handle cases when the curr_idx is out of bound/negative
     let path: PathBuf = all_images.get(*curr_idx).unwrap().to_owned();
-    Ok(image::Handle::from_path(path))
+    Ok(Handle::from_path(path))
 }
 
 fn update_json(json_obj: &mut AnnotatedStore, idx_to_update: i32, new_value: bool) {
