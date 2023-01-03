@@ -1,37 +1,35 @@
 use std::path::PathBuf;
 
 use iced::{
-    widget::{button, column, row},
-    widget::{container, image, text, Button},
-    Renderer, Sandbox, Theme,
+    theme,
+    widget::{button, column, horizontal_space, row, scrollable},
+    widget::{container, image, text, Button, Column},
+    Element, Length, Renderer, Sandbox, Theme,
 };
+use iced_native::Layout;
 
-use self::render_image::Message;
-use notify_rust::Notification;
-use serde::{Deserialize, Serialize};
-use serde_json::json;
+use self::render_image::{init_json_obj, AnnotatedStore, Message, Step, StepMessage};
+// use notify_rust::Notification;
+// use serde::{Deserialize, Serialize};
+// use serde_json::json;
 
 #[path = "render_image.rs"]
 mod render_image;
 
 #[derive(Default, Debug)]
-pub struct FolderVisualizer {
-    theme: Theme,
+pub struct Steps {
+    steps: Vec<render_image::Step>,
     folder_path: String,
     curr_idx: usize,
     all_images: Vec<PathBuf>,
     correct_items: Vec<bool>,
     json_obj: AnnotatedStore,
+    current: usize,
 }
 
-fn fetch_image(
-    all_images: Vec<PathBuf>,
-    curr_idx: &usize,
-) -> Result<image::Handle, reqwest::Error> {
-    // TODO: Set a default image to show that we are waiting for an image...// folder is empty
-    // TODO: Handle cases when the curr_idx is out of bound/negative
-    let path: PathBuf = all_images.get(*curr_idx).unwrap().to_owned();
-    Ok(image::Handle::from_path(path))
+#[derive(Default, Debug)]
+pub struct FolderVisualizer {
+    steps: Steps,
 }
 
 fn get_all_images(folder_path: &String) -> Vec<PathBuf> {
@@ -44,34 +42,6 @@ fn get_all_images(folder_path: &String) -> Vec<PathBuf> {
     output
 }
 
-fn update_json(json_obj: &mut AnnotatedStore, idx_to_update: i32, new_value: bool) {
-    json_obj.indices[idx_to_update as usize] = idx_to_update;
-    json_obj.values[idx_to_update as usize] = new_value;
-}
-
-fn write_json(json_obj: &AnnotatedStore) {
-    std::fs::write(
-        "output.json",
-        serde_json::to_string_pretty(json_obj).unwrap(),
-    );
-}
-
-#[derive(Deserialize, Serialize, Debug, Default)]
-struct AnnotatedStore {
-    indices: Vec<i32>,
-    values: Vec<bool>,
-}
-
-fn init_json_obj(total_len: usize) -> AnnotatedStore {
-    let init_vec = vec![0; total_len];
-    let bool_vec = vec![false; total_len];
-    // init_vec.iter().enumerate().map(|(idx, elem)| hash_map.insert(idx, elem));
-    let json_obj = json!({"indices": init_vec, "values": bool_vec});
-    println!("json_obj: {:?}", json_obj);
-    let obj: AnnotatedStore = serde_json::from_value(json_obj).unwrap();
-    obj
-}
-
 impl Sandbox for FolderVisualizer {
     type Message = render_image::Message;
 
@@ -79,91 +49,126 @@ impl Sandbox for FolderVisualizer {
         let folder_path: String = "sample_folder".into();
         let all_images = get_all_images(&folder_path);
         let json_obj: AnnotatedStore = init_json_obj(all_images.len());
-        let mut folder_obj = FolderVisualizer {
-            theme: Theme::Dark,
-            folder_path,
-            curr_idx: 0,
-            all_images,
-            correct_items: vec![],
-            json_obj,
+        let mut steps_obj = Steps::new(folder_path, 0, all_images.clone(), vec![], json_obj);
+        steps_obj.correct_items = vec![false; all_images.len()];
+        let folder_obj = FolderVisualizer {
+            // folder_path,
+            // curr_idx: 0,
+            // all_images,
+            // correct_items: vec![],
+            steps: steps_obj,
+            // json_obj,
         };
-        folder_obj.correct_items = vec![false; folder_obj.all_images.len()];
         folder_obj
     }
 
     fn title(&self) -> String {
-        format!("Image {0}", self.curr_idx)
+        format!("Image {0}", self.steps.curr_idx)
     }
 
     fn view(&self) -> iced::Element<'_, Self::Message, Renderer> {
-        let export_btn = button(text("Export").size(40)).on_press(Message::Export());
-        let correct_btn =
-            button(text("Mark as Correct").size(40)).on_press(Message::MarkAsCorrect());
-        let incorrect_btn =
-            button(text("Mark as Incorrect").size(40)).on_press(Message::MarkAsIncorrect());
-        let previous_btn: Button<Self::Message, Renderer> =
-            button(text("Previous").size(40)).on_press(Message::Previous());
-        let next_btn: Button<Self::Message, Renderer> =
-            button(text("Next").size(40)).on_press(Message::Next());
-        let img_row = row![image::viewer(
-            fetch_image(self.all_images.clone(), &self.curr_idx).unwrap()
-        )]
-        .align_items(iced::Alignment::Center)
-        .width(iced::Length::Fill)
-        .height(iced::Length::FillPortion(2));
-        // .align_items(iced::Alignment::Center);
+        let FolderVisualizer { steps, .. } = self;
+        let mut controls = row![];
 
-        container(
-            column![
-                img_row,
-                row![correct_btn, incorrect_btn].spacing(20).padding(10),
-                row![previous_btn, export_btn, next_btn]
-                    .spacing(20)
-                    .padding(10)
-            ]
-            .align_items(iced::Alignment::Center),
-        )
-        .center_y()
-        .align_x(iced::alignment::Horizontal::Center)
-        .align_y(iced::alignment::Vertical::Center)
-        .into()
+        if steps.has_previous() {
+            controls = controls.push(
+                button("Back")
+                    .on_press(Message::BackPressed)
+                    .style(theme::Button::Secondary),
+            );
+        }
+
+        controls = controls.push(horizontal_space(Length::Fill));
+
+        if steps.can_continue() {
+            controls = controls.push(
+                button("Next")
+                    .on_press(Message::NextPressed)
+                    .style(theme::Button::Primary),
+            );
+        }
+
+        let content: Element<_> = column![steps.view().map(Message::StepMessage), controls,]
+            .max_width(540)
+            .spacing(20)
+            .padding(20)
+            .into();
+
+        let scrollable = scrollable(container(content).width(Length::Fill).center_x());
+        container(scrollable).height(Length::Fill).center_y().into()
     }
 
     fn update(&mut self, message: Self::Message) {
         match message {
-            render_image::Message::ThemeChanged(theme) => {
-                self.theme = match theme {
-                    render_image::ThemeType::Dark => Theme::Dark,
-                    render_image::ThemeType::Light => Theme::Light,
-                }
+            Message::BackPressed => {
+                self.steps.go_back();
             }
-            render_image::Message::Next() => {
-                self.curr_idx += 1;
+            Message::NextPressed => {
+                self.steps.advance();
             }
-            render_image::Message::Previous() => {
-                self.curr_idx -= 1;
-            }
-            render_image::Message::MarkAsCorrect() => {
-                self.correct_items[self.curr_idx] = true;
-                update_json(&mut self.json_obj, self.curr_idx as i32, true);
-            }
-            render_image::Message::MarkAsIncorrect() => {
-                self.correct_items[self.curr_idx] = false;
-                update_json(&mut self.json_obj, self.curr_idx as i32, false);
-            }
-            render_image::Message::Export() => {
-                write_json(&self.json_obj);
-                // NOTE: Suppressing sound by default
-                let _ = Notification::new()
-                    .summary("Exported to output.json")
-                    .body("See this is the detailed body")
-                    .hint(notify_rust::Hint::SuppressSound(true))
-                    .show();
+            Message::StepMessage(step_msg) => {
+                self.steps.update(step_msg);
             }
         }
     }
 
-    fn theme(&self) -> Theme {
-        self.theme.clone()
+    // fn theme(&self) -> Theme {
+    //     self.theme.clone()
+    // }
+}
+
+impl Steps {
+    pub fn new(
+        folder_path: String,
+        curr_idx: usize,
+        all_images: Vec<PathBuf>,
+        correct_items: Vec<bool>,
+        json_obj: AnnotatedStore,
+    ) -> Steps {
+        Steps {
+            steps: vec![Step::WelcomeWithFolderChoose, Step::Images, Step::End],
+            folder_path,
+            curr_idx,
+            all_images,
+            correct_items,
+            json_obj,
+            current: 0,
+        }
+    }
+
+    pub fn update(&mut self, msg: StepMessage) {
+        let (new_idx, new_indices, new_values, new_correct_items) = self.steps[self.current].update(msg, &mut self.curr_idx, self.json_obj.indices.clone(), self.json_obj.values.clone(), &mut self.correct_items);
+        self.curr_idx = new_idx;
+        self.json_obj.indices = new_indices;
+        self.json_obj.values = new_values;
+        self.correct_items = new_correct_items;
+    }
+
+    pub fn view(&self) -> Element<StepMessage> {
+        self.steps[self.current].view(self)
+    }
+
+    pub fn advance(&mut self) {
+        if self.can_continue() {
+            self.current += 1;
+        }
+    }
+
+    pub fn go_back(&mut self) {
+        if self.has_previous() {
+            self.current -= 1;
+        }
+    }
+
+    pub fn has_previous(&self) -> bool {
+        self.current > 0
+    }
+
+    pub fn can_continue(&self) -> bool {
+        self.current + 1 < self.steps.len() && self.steps[self.current].can_continue()
+    }
+
+    pub fn title(&self) -> &str {
+        self.steps[self.current].title()
     }
 }
