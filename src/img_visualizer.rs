@@ -2,13 +2,14 @@ use std::path::PathBuf;
 
 use iced::{
     widget::{button, column, row},
-    widget::{container, image, text, Button}, Theme, Sandbox, Renderer,
+    widget::{container, image, text, Button},
+    Renderer, Sandbox, Theme,
 };
 
 use self::render_image::Message;
+use notify_rust::Notification;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use notify_rust::Notification;
 
 #[path = "render_image.rs"]
 mod render_image;
@@ -152,7 +153,12 @@ impl Sandbox for FolderVisualizer {
             }
             render_image::Message::Export() => {
                 write_json(&self.json_obj);
-                let _ = Notification::new().summary("Exported to output.json").body("See this is the detailed body").show();
+                // NOTE: Suppressing sound by default
+                let _ = Notification::new()
+                    .summary("Exported to output.json")
+                    .body("See this is the detailed body")
+                    .hint(notify_rust::Hint::SuppressSound(true))
+                    .show();
             }
         }
     }
