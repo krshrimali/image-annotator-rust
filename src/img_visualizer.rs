@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, collections::HashMap};
 
 use iced::{
     widget::{button, column, row, Row},
@@ -7,6 +7,9 @@ use iced::{
 };
 
 use self::render_image::Message;
+
+use serde::{Serialize, Deserialize};
+use serde_json::{Number, Value, json};
 
 #[path = "render_image.rs"]
 mod render_image;
@@ -18,6 +21,7 @@ pub struct FolderVisualizer {
     curr_idx: usize,
     all_images: Vec<PathBuf>,
     correct_items: Vec<bool>,
+    json_obj: AnnotatedStore,
 }
 
 fn fetch_image(
@@ -30,7 +34,7 @@ fn fetch_image(
     Ok(image::Handle::from_path(path))
 }
 
-fn get_all_images(folder_path: String) -> Vec<PathBuf> {
+fn get_all_images(folder_path: &String) -> Vec<PathBuf> {
     // TODO: Handle dir validation here
     let paths = std::fs::read_dir(folder_path).unwrap();
     let mut output: Vec<PathBuf> = vec![];
@@ -40,17 +44,54 @@ fn get_all_images(folder_path: String) -> Vec<PathBuf> {
     output
 }
 
+fn update_json(json_obj: &mut AnnotatedStore, idx_to_update: i32, new_value: bool) {
+    json_obj.indices[idx_to_update as usize] = idx_to_update;
+    json_obj.values[idx_to_update as usize] = new_value;
+}
+
+fn write_json(json_obj: &AnnotatedStore) {
+    std::fs::write("output.json", serde_json::to_string_pretty(json_obj).unwrap());
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+struct AnnotatedStore {
+    indices: Vec<i32>,
+    values: Vec<bool>
+}
+
+impl Default for AnnotatedStore {
+    fn default() -> Self {
+        AnnotatedStore {
+            indices: vec![],
+            values: vec![]
+        }
+    }
+}
+
+fn init_json_obj(total_len: usize) -> AnnotatedStore {
+    let init_vec = vec![0; total_len];
+    let bool_vec = vec![false; total_len];
+    // init_vec.iter().enumerate().map(|(idx, elem)| hash_map.insert(idx, elem));
+    let json_obj = json!({"indices": init_vec, "values": bool_vec});
+    println!("json_obj: {:?}", json_obj);
+    let obj: AnnotatedStore = serde_json::from_value(json_obj).unwrap();
+    obj
+}
+
 impl Sandbox for FolderVisualizer {
     type Message = render_image::Message;
 
     fn new() -> FolderVisualizer {
         let folder_path: String = "sample_folder".into();
+        let all_images = get_all_images(&folder_path);
+        let json_obj: AnnotatedStore = init_json_obj(all_images.len());
         let mut folder_obj = FolderVisualizer {
             theme: Theme::Dark,
-            folder_path: folder_path.clone(),
+            folder_path,
             curr_idx: 0,
-            all_images: get_all_images(folder_path),
+            all_images,
             correct_items: vec![],
+            json_obj,
         };
         folder_obj.correct_items = vec![false; folder_obj.all_images.len()];
         folder_obj
@@ -61,7 +102,7 @@ impl Sandbox for FolderVisualizer {
     }
 
     fn view(&self) -> iced::Element<'_, Self::Message, Renderer> {
-        let export_btn = button(text("Export").size(40));
+        let export_btn = button(text("Export").size(40)).on_press(Message::Export());
         let correct_btn =
             button(text("Mark as Correct").size(40)).on_press(Message::MarkAsCorrect());
         let incorrect_btn =
@@ -110,9 +151,14 @@ impl Sandbox for FolderVisualizer {
             }
             render_image::Message::MarkAsCorrect() => {
                 self.correct_items[self.curr_idx] = true;
+                update_json(&mut self.json_obj, self.curr_idx as i32, true);
             }
             render_image::Message::MarkAsIncorrect() => {
                 self.correct_items[self.curr_idx] = false;
+                update_json(&mut self.json_obj, self.curr_idx as i32, false);
+            }
+            render_image::Message::Export() => {
+                write_json(&self.json_obj);
             }
         }
     }

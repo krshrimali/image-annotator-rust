@@ -13,6 +13,7 @@ pub enum Message {
     Next(),
     MarkAsCorrect(),
     MarkAsIncorrect(),
+    Export(),
 }
 
 // pub fn get_image_handle<'a>(img_path: String) -> Container<'a, Message> {

@@ -6,8 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+serde = {version = "*", features=["derive"]}
 iced = { version = "*", features = ["image", "debug"] }
 iced_core = "*"
 iced_native = "*"
 itertools = "*"
 reqwest = { version = "*", features = ["blocking"] }
+serde_json = "*"
