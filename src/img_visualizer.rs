@@ -2,11 +2,9 @@ use std::path::PathBuf;
 
 use iced::{
     theme,
-    widget::{button, column, horizontal_space, row, scrollable},
-    widget::{container, image, text, Button, Column},
-    Element, Length, Renderer, Sandbox, Theme,
+    widget::{button, column, container, horizontal_space, row, scrollable},
+    Element, Length, Renderer, Sandbox,
 };
-use iced_native::Layout;
 
 use self::render_image::{init_json_obj, AnnotatedStore, Message, Step, StepMessage};
 // use notify_rust::Notification;
@@ -51,15 +49,7 @@ impl Sandbox for FolderVisualizer {
         let json_obj: AnnotatedStore = init_json_obj(all_images.len());
         let mut steps_obj = Steps::new(folder_path, 0, all_images.clone(), vec![], json_obj);
         steps_obj.correct_items = vec![false; all_images.len()];
-        let folder_obj = FolderVisualizer {
-            // folder_path,
-            // curr_idx: 0,
-            // all_images,
-            // correct_items: vec![],
-            steps: steps_obj,
-            // json_obj,
-        };
-        folder_obj
+        FolderVisualizer { steps: steps_obj }
     }
 
     fn title(&self) -> String {
@@ -88,8 +78,8 @@ impl Sandbox for FolderVisualizer {
             );
         }
 
+        // column(children).align_items(iced::Alignment::End)
         let content: Element<_> = column![steps.view().map(Message::StepMessage), controls,]
-            .max_width(540)
             .spacing(20)
             .padding(20)
             .into();
@@ -111,10 +101,6 @@ impl Sandbox for FolderVisualizer {
             }
         }
     }
-
-    // fn theme(&self) -> Theme {
-    //     self.theme.clone()
-    // }
 }
 
 impl Steps {
