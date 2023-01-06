@@ -2,9 +2,12 @@
 
 use std::path::PathBuf;
 
+use rfd::FileDialog;
+
 use iced::{
-    widget::{button, container, row, text},
-    Element, Renderer,
+    alignment,
+    widget::{button, container, container::Appearance, horizontal_space, row, text, Container},
+    Color, Element, Length, Renderer,
 };
 use iced_native::{
     column,
@@ -15,7 +18,7 @@ use notify_rust::Notification;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use super::{FolderVisualizer, Steps};
+use super::{FolderVisualizer, Steps, get_all_images};
 
 #[derive(Debug, PartialEq, Clone, Eq, Copy)]
 pub enum ThemeType {
@@ -37,6 +40,7 @@ pub enum StepMessage {
     MarkAsCorrect(),
     MarkAsIncorrect(),
     Export(),
+    ChooseFolderPath(),
 }
 
 #[derive(Debug, Clone)]
@@ -46,6 +50,26 @@ pub enum Step {
     End,
 }
 
+struct ContainerCustomStyle {
+    bg_color: iced::Background,
+}
+
+impl container::StyleSheet for ContainerCustomStyle {
+    type Style = iced::theme::Theme;
+
+    fn appearance(&self, _: &iced::Theme) -> container::Appearance {
+        // TODO: Consider adding an option for theme here...
+        // Also might consider bg as transparent instead...
+        container::Appearance {
+            border_radius: 2.0,
+            border_width: 2.0,
+            border_color: iced::Color::BLACK,
+            background: Some(self.bg_color),
+            ..Default::default()
+        }
+    }
+}
+
 impl<'a> Step {
     pub fn update(
         &'a mut self,
@@ -53,11 +77,14 @@ impl<'a> Step {
         curr_idx: &mut usize,
         json_indices: Vec<i32>,
         json_values: Vec<bool>,
-        correct_items: &mut Vec<bool>,
-    ) -> (usize, Vec<i32>, Vec<bool>, Vec<bool>) {
-        let mut json_obj = AnnotatedStore::default();
-        json_obj.indices = json_indices;
-        json_obj.values = json_values;
+        correct_items: &mut [bool],
+    ) -> (usize, Vec<i32>, Vec<bool>, Vec<bool>, Steps) {
+        let mut json_obj = AnnotatedStore {
+            indices: json_indices,
+            values: json_values,
+        };
+        let mut new_steps_obj = Steps::default();
+
         match msg {
             StepMessage::Next() => {
                 *curr_idx += 1;
@@ -82,6 +109,20 @@ impl<'a> Step {
                     .hint(notify_rust::Hint::SuppressSound(true))
                     .show();
             }
+            StepMessage::ChooseFolderPath() => {
+                let new_folder_path = FileDialog::new()
+                    .set_directory(".")
+                    .pick_folder()
+                    .unwrap_or_default();
+
+                let new_folder_path_as_str = new_folder_path.into_os_string().into_string().unwrap();
+                let new_all_images = get_all_images(&new_folder_path_as_str);
+                let new_json_obj: AnnotatedStore = init_json_obj(new_all_images.len());
+                let mut steps_obj = Steps::new(new_folder_path_as_str, 0, new_all_images.clone(), vec![], new_json_obj);
+                steps_obj.correct_items = vec![false; new_all_images.len()];
+                steps_obj.modified = true;
+                new_steps_obj = steps_obj;
+            }
         };
 
         (
@@ -89,6 +130,7 @@ impl<'a> Step {
             json_obj.indices.clone(),
             json_obj.values.clone(),
             correct_items.to_vec(),
+            new_steps_obj,
         )
     }
 
@@ -109,12 +151,50 @@ impl<'a> Step {
         .into()
     }
 
-    pub fn container(title: &str) -> Column<'a, StepMessage, Renderer> {
+    pub fn container_(title: &str) -> Column<'a, StepMessage, Renderer> {
         column![text(title).size(50)].spacing(20)
     }
 
     pub fn welcome() -> Column<'a, StepMessage, Renderer> {
-        Self::container("Welcome!").push("Hi")
+        let file_choose_button =
+            button(text("Select folder")).on_press(StepMessage::ChooseFolderPath());
+
+        column![container(row![file_choose_button])]
+    }
+
+    pub fn create_info(
+        curr_idx: &usize,
+        len_images: &usize,
+        folder_path: &str,
+        correct_items: &Vec<bool>,
+    ) -> Container<'a, StepMessage, Renderer> {
+        let curr_idx_text = text(format!("curr_idx: {}", curr_idx)).size(20);
+        let len_images_text = text(format!("Total Images: {}", len_images)).size(20);
+        let folder_path_text = text(format!("Folder Path: {}", folder_path)).size(20);
+        let val = match correct_items[*curr_idx] {
+            true => "Correct",
+            false => "Incorrect",
+        };
+        let correct_item_text = text(format!("Current selection: {}", val)).size(20);
+
+        container(
+            row![
+                curr_idx_text,
+                horizontal_space(Length::Fill),
+                len_images_text,
+                horizontal_space(Length::Fill),
+                folder_path_text,
+                horizontal_space(Length::Fill),
+                correct_item_text
+            ]
+            .padding(20),
+        )
+        .style(iced::theme::Container::Custom(Box::new(
+            ContainerCustomStyle {
+                bg_color: iced::Background::Color(iced::Color::WHITE),
+            },
+        )))
+        .width(Length::Fill)
     }
 
     pub fn images(obj: &Steps) -> Column<'a, StepMessage, Renderer> {
@@ -127,24 +207,46 @@ impl<'a> Step {
             button(text("Previous").size(40)).on_press(StepMessage::Previous());
         let next_btn: Button<StepMessage, Renderer> =
             button(text("Next").size(40)).on_press(StepMessage::Next());
-        let img_row = row![image::viewer(
+        let img_row = container(row![image::viewer(
             fetch_image(obj.all_images.clone(), &obj.curr_idx).unwrap()
-        )];
-        // .align_items(iced::Alignment::Center)
-        // .width(iced::Length::Fill)
-        // .height(iced::Length::FillPortion(2));
-        println!("obj curr_idx: {:?}", obj.curr_idx);
-        println!("img row: {:?}", obj.all_images.clone());
-        // .align_items(iced::Alignment::Center);
+        )])
+        .style(iced::theme::Container::Custom(Box::new(
+            ContainerCustomStyle {
+                bg_color: iced::Background::Color(iced::Color::WHITE),
+            },
+        )));
+
+        let info_row = Self::create_info(
+            &obj.curr_idx,
+            &obj.all_images.len(),
+            &obj.folder_path,
+            &obj.correct_items,
+        );
 
         // container(
-        column![
-            img_row,
-            row![correct_btn, incorrect_btn].spacing(20).padding(10),
-            row![previous_btn, export_btn, next_btn]
-                .spacing(20)
-                .padding(10)
-        ]
+        // border
+        // TODO: Optional resize option for all the images
+        column![container(column![
+            container(img_row)
+                .align_x(iced::alignment::Horizontal::Center)
+                .align_y(iced::alignment::Vertical::Center),
+            container(
+                row![correct_btn, horizontal_space(Length::Fill), incorrect_btn]
+                    .spacing(20)
+                    .padding(10)
+            ),
+            info_row,
+            row![
+                previous_btn,
+                horizontal_space(Length::Fill),
+                export_btn,
+                horizontal_space(Length::Fill),
+                next_btn
+            ]
+            .spacing(20)
+            .padding(10)
+        ])
+        .center_y()]
         // .align_items(iced::Alignment::Center)
         // )
         // .center_y()
@@ -154,7 +256,7 @@ impl<'a> Step {
     }
 
     pub fn end() -> Column<'a, StepMessage, Renderer> {
-        Self::container("End!").push("Hi")
+        Self::container_("End!").push("Hi")
     }
 
     pub fn title(&self) -> &str {

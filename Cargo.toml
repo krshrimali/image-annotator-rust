@@ -15,3 +15,4 @@ reqwest = { version = "*", features = ["blocking"] }
 sqlx = { version = "0.6", features = ["runtime-tokio-rustls"] }
 serde_json = "*"
 notify-rust = "*"
+rfd = "*"

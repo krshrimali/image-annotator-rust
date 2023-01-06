@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use iced::{
-    theme,
+    alignment, theme,
     widget::{button, column, container, horizontal_space, row, scrollable},
     Element, Length, Renderer, Sandbox,
 };
@@ -23,6 +23,7 @@ pub struct Steps {
     correct_items: Vec<bool>,
     json_obj: AnnotatedStore,
     current: usize,
+    modified: bool,
 }
 
 #[derive(Default, Debug)]
@@ -44,8 +45,8 @@ impl Sandbox for FolderVisualizer {
     type Message = render_image::Message;
 
     fn new() -> FolderVisualizer {
-        let folder_path: String = "sample_folder".into();
-        let all_images = get_all_images(&folder_path);
+        let folder_path: String = "".into();
+        let all_images = vec![];
         let json_obj: AnnotatedStore = init_json_obj(all_images.len());
         let mut steps_obj = Steps::new(folder_path, 0, all_images.clone(), vec![], json_obj);
         steps_obj.correct_items = vec![false; all_images.len()];
@@ -78,14 +79,18 @@ impl Sandbox for FolderVisualizer {
             );
         }
 
-        // column(children).align_items(iced::Alignment::End)
-        let content: Element<_> = column![steps.view().map(Message::StepMessage), controls,]
-            .spacing(20)
-            .padding(20)
-            .into();
+        let content: Element<_> = column![container(
+            column![steps.view().map(Message::StepMessage), controls,]
+                .spacing(20)
+                .padding(20)
+                .align_items(iced::Alignment::Fill),
+        )]
+        .into();
 
-        let scrollable = scrollable(container(content).width(Length::Fill).center_x());
-        container(scrollable).height(Length::Fill).center_y().into()
+        // let scrollable = scrollable(container(content).width(Length::Fill).center_x());
+        // container(scrollable).height(Length::Fill).center_y().into()
+        // scrollable(container(content)).into()
+        container(content).into()
     }
 
     fn update(&mut self, message: Self::Message) {
@@ -119,11 +124,12 @@ impl Steps {
             correct_items,
             json_obj,
             current: 0,
+            modified: false,
         }
     }
 
     pub fn update(&mut self, msg: StepMessage) {
-        let (new_idx, new_indices, new_values, new_correct_items) = self.steps[self.current]
+        let (new_idx, new_indices, new_values, new_correct_items, new_steps_obj) = self.steps[self.current]
             .update(
                 msg,
                 &mut self.curr_idx,
@@ -131,10 +137,18 @@ impl Steps {
                 self.json_obj.values.clone(),
                 &mut self.correct_items,
             );
-        self.curr_idx = new_idx;
-        self.json_obj.indices = new_indices;
-        self.json_obj.values = new_values;
-        self.correct_items = new_correct_items;
+        if new_steps_obj.modified {
+            self.curr_idx = new_steps_obj.curr_idx;
+            self.correct_items = new_steps_obj.correct_items;
+            self.folder_path = new_steps_obj.folder_path;
+            self.all_images = new_steps_obj.all_images;
+            println!("self.all_images: {:?}", self.all_images);
+        } else {
+            self.curr_idx = new_idx;
+            self.json_obj.indices = new_indices;
+            self.json_obj.values = new_values;
+            self.correct_items = new_correct_items;
+        }
     }
 
     pub fn view(&self) -> Element<StepMessage> {
