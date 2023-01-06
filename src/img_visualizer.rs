@@ -142,6 +142,8 @@ impl Steps {
             self.correct_items = new_steps_obj.correct_items;
             self.folder_path = new_steps_obj.folder_path;
             self.all_images = new_steps_obj.all_images;
+            self.json_obj.indices = new_indices;
+            self.json_obj.values = new_values;
             println!("self.all_images: {:?}", self.all_images);
         } else {
             self.curr_idx = new_idx;

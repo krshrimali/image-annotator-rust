@@ -18,7 +18,7 @@ use notify_rust::Notification;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use super::{FolderVisualizer, Steps, get_all_images};
+use super::{get_all_images, FolderVisualizer, Steps};
 
 #[derive(Debug, PartialEq, Clone, Eq, Copy)]
 pub enum ThemeType {
@@ -115,12 +115,25 @@ impl<'a> Step {
                     .pick_folder()
                     .unwrap_or_default();
 
-                let new_folder_path_as_str = new_folder_path.into_os_string().into_string().unwrap();
+                let new_folder_path_as_str =
+                    new_folder_path.into_os_string().into_string().unwrap();
                 let new_all_images = get_all_images(&new_folder_path_as_str);
                 let new_json_obj: AnnotatedStore = init_json_obj(new_all_images.len());
-                let mut steps_obj = Steps::new(new_folder_path_as_str, 0, new_all_images.clone(), vec![], new_json_obj);
+                let mut steps_obj = Steps::new(
+                    new_folder_path_as_str,
+                    0,
+                    new_all_images.clone(),
+                    vec![],
+                    new_json_obj,
+                );
                 steps_obj.correct_items = vec![false; new_all_images.len()];
                 steps_obj.modified = true;
+                json_obj.indices = vec![];
+                json_obj.values = vec![];
+                for idx in 0..new_all_images.len() {
+                    json_obj.indices.push(idx as i32);
+                    json_obj.values.push(false);
+                }
                 new_steps_obj = steps_obj;
             }
         };
@@ -227,9 +240,7 @@ impl<'a> Step {
         // border
         // TODO: Optional resize option for all the images
         column![container(column![
-            container(img_row)
-                .align_x(iced::alignment::Horizontal::Center)
-                .align_y(iced::alignment::Vertical::Center),
+            container(img_row).width(Length::Shrink).height(Length::Shrink),
             container(
                 row![correct_btn, horizontal_space(Length::Fill), incorrect_btn]
                     .spacing(20)
