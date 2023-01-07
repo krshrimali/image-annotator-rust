@@ -1,5 +1,4 @@
 use iced::{Sandbox, Settings};
-use winit::monitor::MonitorHandle;
 
 mod img_visualizer;
 
