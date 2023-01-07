@@ -173,6 +173,14 @@ impl Steps {
         self.current + 1 < self.steps.len() && self.steps[self.current].can_continue()
     }
 
+    pub fn is_next_image_available(&self) -> bool {
+        self.curr_idx + 1 < self.all_images.len()
+    }
+
+    pub fn is_previous_image_available(&self) -> bool {
+        self.curr_idx != 0
+    }
+
     pub fn title(&self) -> &str {
         self.steps[self.current].title()
     }

@@ -173,15 +173,18 @@ impl<'a> Step {
         curr_idx: &usize,
         len_images: &usize,
         folder_path: &str,
-        correct_items: &Vec<bool>,
+        correct_items: &[bool],
     ) -> Container<'a, StepMessage, Renderer> {
         let curr_idx_text = text(format!("curr_idx: {}", curr_idx)).size(20);
         let len_images_text = text(format!("Total Images: {}", len_images)).size(20);
         let folder_path_text = text(format!("Folder Path: {}", folder_path)).size(20);
-        let val = match correct_items[*curr_idx] {
-            true => "Correct",
-            false => "Incorrect",
-        };
+        let mut val: &str = "No Image";
+        if *curr_idx < correct_items.len() {
+            val = match correct_items[*curr_idx] {
+                true => "Correct",
+                false => "Incorrect",
+            };
+        }
         let correct_item_text = text(format!("Current selection: {}", val)).size(20);
 
         container(
@@ -210,10 +213,29 @@ impl<'a> Step {
             button(text("Mark as Correct").size(20)).on_press(StepMessage::MarkAsCorrect());
         let incorrect_btn =
             button(text("Mark as Incorrect").size(20)).on_press(StepMessage::MarkAsIncorrect());
-        let previous_btn: Button<StepMessage, Renderer> =
-            button(text("Previous Image").size(20)).on_press(StepMessage::Previous());
-        let next_btn: Button<StepMessage, Renderer> =
-            button(text("Next Image").size(20)).on_press(StepMessage::Next());
+        let mut previous_btn: Option<Button<StepMessage, Renderer>> =
+            Some(button(text("Previous Image").size(20)).on_press(StepMessage::Previous()));
+        let mut next_btn: Option<Button<StepMessage, Renderer>> =
+            Some(button(text("Next Image").size(20)).on_press(StepMessage::Next()));
+
+        match obj.is_next_image_available() {
+            true => {
+                next_btn = Some(next_btn.unwrap().style(iced::theme::Button::Primary));
+            }
+            false => {
+                // next_btn = next_btn.style(iced::theme::Button::Secondary).on_press(StepMessage::Exit());
+                next_btn = None;
+            }
+        }
+
+        match obj.is_previous_image_available() {
+            true => {
+                previous_btn = Some(previous_btn.unwrap().style(iced::theme::Button::Primary));
+            }
+            false => {
+                previous_btn = None;
+            }
+        };
         // let img_row = container(row![image::viewer(
         //     fetch_image(obj.all_images.clone(), &obj.curr_idx).unwrap()
         // ).width(Length::Units(600)).height(Length::Units(800))])
@@ -237,6 +259,36 @@ impl<'a> Step {
         // container(
         // border
         // TODO: Optional resize option for all the images
+        let next_prev_buttons_row = match next_btn {
+            Some(next_btn_valid) => match previous_btn {
+                Some(prev_btn_valid) => row![
+                    prev_btn_valid,
+                    horizontal_space(Length::Fill),
+                    export_btn,
+                    horizontal_space(Length::Fill),
+                    next_btn_valid,
+                ],
+                None => row![
+                    horizontal_space(Length::Fill),
+                    export_btn,
+                    horizontal_space(Length::Fill),
+                    next_btn_valid,
+                ],
+            },
+            None => match previous_btn {
+                Some(prev_btn_valid) => row![
+                    prev_btn_valid,
+                    horizontal_space(Length::Fill),
+                    export_btn,
+                    horizontal_space(Length::Fill),
+                ],
+                None => row![
+                    horizontal_space(Length::Fill),
+                    export_btn,
+                    horizontal_space(Length::Fill),
+                ],
+            },
+        };
         column![container(column![
             // container(img_row).width(Length::FillPortion(2)).height(Length::FillPortion(2)),
             container(img_row),
@@ -250,17 +302,9 @@ impl<'a> Step {
             // .height(Length::FillPortion(1))
             // .width(Length::FillPortion(1)),
             info_row,
-            row![
-                previous_btn,
-                horizontal_space(Length::Fill),
-                export_btn,
-                horizontal_space(Length::Fill),
-                next_btn
-            ]
             // .height(Length::FillPortion(1))
             // .width(Length::FillPortion(1))
-            .spacing(20)
-            .padding(10)
+            next_prev_buttons_row.spacing(20).padding(10)
         ])
         .center_y()]
         // .align_items(iced::Alignment::Center)
@@ -272,7 +316,7 @@ impl<'a> Step {
     }
 
     pub fn end() -> Column<'a, StepMessage, Renderer> {
-        Self::container_("End!").push("Hi")
+        column![container(Self::container_("End!")).center_x().center_y()]
     }
 
     pub fn title(&self) -> &str {
@@ -287,7 +331,10 @@ impl<'a> Step {
 pub fn fetch_image(all_images: Vec<PathBuf>, curr_idx: &usize) -> Result<Handle, reqwest::Error> {
     // TODO: Set a default image to show that we are waiting for an image...// folder is empty
     // TODO: Handle cases when the curr_idx is out of bound/negative
-    let path: PathBuf = all_images.get(*curr_idx).unwrap().to_owned();
+    let path: PathBuf = all_images
+        .get(*curr_idx)
+        .unwrap_or(&PathBuf::default())
+        .to_owned();
     Ok(Handle::from_path(path))
 }
 
