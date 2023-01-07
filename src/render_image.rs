@@ -93,12 +93,16 @@ impl<'a> Step {
                 *curr_idx -= 1;
             }
             StepMessage::MarkAsCorrect() => {
-                correct_items[*curr_idx] = true;
-                update_json(&mut json_obj, *curr_idx as i32, true);
+                if curr_idx < &mut correct_items.len() {
+                    correct_items[*curr_idx] = true;
+                    update_json(&mut json_obj, *curr_idx as i32, true);
+                }
             }
             StepMessage::MarkAsIncorrect() => {
-                correct_items[*curr_idx] = false;
-                update_json(&mut json_obj, *curr_idx as i32, false);
+                if curr_idx < &mut correct_items.len() {
+                    correct_items[*curr_idx] = false;
+                    update_json(&mut json_obj, *curr_idx as i32, false);
+                }
             }
             StepMessage::Export() => {
                 write_json(&json_obj);
