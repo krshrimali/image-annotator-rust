@@ -102,12 +102,6 @@ impl<'a> Step {
             }
             StepMessage::Export() => {
                 write_json(&json_obj);
-                // NOTE: Suppressing sound by default
-                let _ = Notification::new()
-                    .summary("Exported to output.json")
-                    .body("See this is the detailed body")
-                    .hint(notify_rust::Hint::SuppressSound(true))
-                    .show();
             }
             StepMessage::ChooseFolderPath() => {
                 let new_folder_path = FileDialog::new()
@@ -211,18 +205,22 @@ impl<'a> Step {
     }
 
     pub fn images(obj: &Steps) -> Column<'a, StepMessage, Renderer> {
-        let export_btn = button(text("Export").size(40)).on_press(StepMessage::Export());
+        let export_btn = button(text("Export").size(20)).on_press(StepMessage::Export());
         let correct_btn =
-            button(text("Mark as Correct").size(40)).on_press(StepMessage::MarkAsCorrect());
+            button(text("Mark as Correct").size(20)).on_press(StepMessage::MarkAsCorrect());
         let incorrect_btn =
-            button(text("Mark as Incorrect").size(40)).on_press(StepMessage::MarkAsIncorrect());
+            button(text("Mark as Incorrect").size(20)).on_press(StepMessage::MarkAsIncorrect());
         let previous_btn: Button<StepMessage, Renderer> =
-            button(text("Previous").size(40)).on_press(StepMessage::Previous());
+            button(text("Previous Image").size(20)).on_press(StepMessage::Previous());
         let next_btn: Button<StepMessage, Renderer> =
-            button(text("Next").size(40)).on_press(StepMessage::Next());
+            button(text("Next Image").size(20)).on_press(StepMessage::Next());
+        // let img_row = container(row![image::viewer(
+        //     fetch_image(obj.all_images.clone(), &obj.curr_idx).unwrap()
+        // ).width(Length::Units(600)).height(Length::Units(800))])
         let img_row = container(row![image::viewer(
             fetch_image(obj.all_images.clone(), &obj.curr_idx).unwrap()
         )])
+        .width(Length::Fill)
         .style(iced::theme::Container::Custom(Box::new(
             ContainerCustomStyle {
                 bg_color: iced::Background::Color(iced::Color::WHITE),
@@ -240,12 +238,17 @@ impl<'a> Step {
         // border
         // TODO: Optional resize option for all the images
         column![container(column![
-            container(img_row).width(Length::Shrink).height(Length::Shrink),
+            // container(img_row).width(Length::FillPortion(2)).height(Length::FillPortion(2)),
+            container(img_row),
+            // .width(Length::Fill)
+            // .height(Length::FillPortion(4)),
             container(
                 row![correct_btn, horizontal_space(Length::Fill), incorrect_btn]
                     .spacing(20)
                     .padding(10)
             ),
+            // .height(Length::FillPortion(1))
+            // .width(Length::FillPortion(1)),
             info_row,
             row![
                 previous_btn,
@@ -254,6 +257,8 @@ impl<'a> Step {
                 horizontal_space(Length::Fill),
                 next_btn
             ]
+            // .height(Length::FillPortion(1))
+            // .width(Length::FillPortion(1))
             .spacing(20)
             .padding(10)
         ])
@@ -309,7 +314,6 @@ pub fn init_json_obj(total_len: usize) -> AnnotatedStore {
     let bool_vec = vec![false; total_len];
     // init_vec.iter().enumerate().map(|(idx, elem)| hash_map.insert(idx, elem));
     let json_obj = json!({"indices": init_vec, "values": bool_vec});
-    println!("json_obj: {:?}", json_obj);
     let obj: AnnotatedStore = serde_json::from_value(json_obj).unwrap();
     obj
 }

@@ -7,9 +7,6 @@ use iced::{
 };
 
 use self::render_image::{init_json_obj, AnnotatedStore, Message, Step, StepMessage};
-// use notify_rust::Notification;
-// use serde::{Deserialize, Serialize};
-// use serde_json::json;
 
 #[path = "render_image.rs"]
 mod render_image;
@@ -87,10 +84,10 @@ impl Sandbox for FolderVisualizer {
         )]
         .into();
 
-        // let scrollable = scrollable(container(content).width(Length::Fill).center_x());
-        // container(scrollable).height(Length::Fill).center_y().into()
+        let scrollable = scrollable(container(content).width(Length::Fill).center_x());
+        container(scrollable).height(Length::Fill).center_y().into()
         // scrollable(container(content)).into()
-        container(content).into()
+        // container(content).into()
     }
 
     fn update(&mut self, message: Self::Message) {
@@ -129,8 +126,8 @@ impl Steps {
     }
 
     pub fn update(&mut self, msg: StepMessage) {
-        let (new_idx, new_indices, new_values, new_correct_items, new_steps_obj) = self.steps[self.current]
-            .update(
+        let (new_idx, new_indices, new_values, new_correct_items, new_steps_obj) =
+            self.steps[self.current].update(
                 msg,
                 &mut self.curr_idx,
                 self.json_obj.indices.clone(),
@@ -144,7 +141,6 @@ impl Steps {
             self.all_images = new_steps_obj.all_images;
             self.json_obj.indices = new_indices;
             self.json_obj.values = new_values;
-            println!("self.all_images: {:?}", self.all_images);
         } else {
             self.curr_idx = new_idx;
             self.json_obj.indices = new_indices;
