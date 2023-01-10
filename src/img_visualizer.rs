@@ -1,7 +1,7 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use iced::{
-    alignment, theme,
+    theme,
     widget::{button, column, container, horizontal_space, row, scrollable},
     Element, Length, Renderer, Sandbox,
 };
@@ -11,19 +11,20 @@ use self::render_image::{init_json_obj, AnnotatedStore, Message, Step, StepMessa
 #[path = "render_image.rs"]
 mod render_image;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Steps {
     steps: Vec<render_image::Step>,
     folder_path: String,
     curr_idx: usize,
     all_images: Vec<PathBuf>,
-    correct_items: Vec<bool>,
+    correct_items: Vec<Option<bool>>,
     json_obj: AnnotatedStore,
     current: usize,
     modified: bool,
+    btn_status: bool,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct FolderVisualizer {
     steps: Steps,
 }
@@ -46,15 +47,16 @@ impl Sandbox for FolderVisualizer {
         let all_images = vec![];
         let json_obj: AnnotatedStore = init_json_obj(all_images.len());
         let mut steps_obj = Steps::new(folder_path, 0, all_images.clone(), vec![], json_obj);
-        steps_obj.correct_items = vec![false; all_images.len()];
+        steps_obj.correct_items = vec![None; all_images.len()];
+        // steps_obj.buttons = HashMap::new();
         FolderVisualizer { steps: steps_obj }
     }
 
     fn title(&self) -> String {
-        format!("Image {0}", self.steps.curr_idx)
+        self.steps.title()
     }
 
-    fn view(&self) -> iced::Element<'_, Self::Message, Renderer> {
+    fn view(self: &FolderVisualizer) -> iced::Element<'_, Self::Message, Renderer> {
         let FolderVisualizer { steps, .. } = self;
         let mut controls = row![];
 
@@ -68,16 +70,25 @@ impl Sandbox for FolderVisualizer {
 
         controls = controls.push(horizontal_space(Length::Fill));
 
+        // let (new_btn_status, element_view) = steps.view();
+        let element_view = steps.view();
+        // println!("new status: {}", new_btn_status);
         if steps.can_continue() {
-            controls = controls.push(
-                button("Next")
-                    .on_press(Message::NextPressed)
-                    .style(theme::Button::Primary),
-            );
+            unsafe {
+                if render_image::FOLDER_FOUND {
+                    controls = controls.push(
+                        button("Next")
+                            .on_press(Message::NextPressed)
+                            .style(theme::Button::Primary),
+                    );
+                } else {
+                    controls = controls.push(button("Next"));
+                }
+            }
         }
 
         let content: Element<_> = column![container(
-            column![steps.view().map(Message::StepMessage), controls,]
+            column![element_view.map(Message::StepMessage), controls,]
                 .spacing(20)
                 .padding(20)
                 .align_items(iced::Alignment::Fill),
@@ -110,7 +121,7 @@ impl Steps {
         folder_path: String,
         curr_idx: usize,
         all_images: Vec<PathBuf>,
-        correct_items: Vec<bool>,
+        correct_items: Vec<Option<bool>>,
         json_obj: AnnotatedStore,
     ) -> Steps {
         Steps {
@@ -122,6 +133,7 @@ impl Steps {
             json_obj,
             current: 0,
             modified: false,
+            btn_status: false,
         }
     }
 
@@ -162,11 +174,24 @@ impl Steps {
     pub fn go_back(&mut self) {
         if self.has_previous() {
             self.current -= 1;
+            if self.current == 0 {
+                unsafe {
+                    render_image::FOLDER_FOUND = false;
+                }
+            }
         }
     }
 
     pub fn has_previous(&self) -> bool {
         self.current > 0
+    }
+
+    pub fn enable_next_button(&mut self) {
+        self.btn_status = true;
+    }
+
+    pub fn disable_next_button(&mut self) {
+        self.btn_status = false;
     }
 
     pub fn can_continue(&self) -> bool {
@@ -181,7 +206,7 @@ impl Steps {
         self.curr_idx != 0
     }
 
-    pub fn title(&self) -> &str {
+    pub fn title(&self) -> String {
         self.steps[self.current].title()
     }
 }

@@ -5,35 +5,36 @@ use std::path::PathBuf;
 use rfd::FileDialog;
 
 use iced::{
-    alignment,
-    widget::{button, container, container::Appearance, horizontal_space, row, text, Container},
-    Color, Element, Length, Renderer,
+    theme,
+    widget::{button, container, horizontal_space, row, text, Container},
+    Element, Length, Renderer,
 };
 use iced_native::{
     column,
     image::Handle,
-    widget::{column, image, Button, Column},
+    widget::{image, Button, Column},
 };
-use notify_rust::Notification;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use super::{get_all_images, FolderVisualizer, Steps};
+use super::{get_all_images, Steps};
 
-#[derive(Debug, PartialEq, Clone, Eq, Copy)]
+#[derive(PartialEq, Clone, Eq, Copy)]
 pub enum ThemeType {
     Light,
     Dark,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub enum Message {
     BackPressed,
     NextPressed,
     StepMessage(StepMessage),
 }
 
-#[derive(Debug, Clone)]
+pub static mut FOLDER_FOUND: bool = false;
+
+#[derive(Clone, Debug)]
 pub enum StepMessage {
     Previous(),
     Next(),
@@ -43,7 +44,7 @@ pub enum StepMessage {
     ChooseFolderPath(),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub enum Step {
     WelcomeWithFolderChoose,
     Images,
@@ -76,9 +77,9 @@ impl<'a> Step {
         msg: StepMessage,
         curr_idx: &mut usize,
         json_indices: Vec<i32>,
-        json_values: Vec<bool>,
-        correct_items: &mut [bool],
-    ) -> (usize, Vec<i32>, Vec<bool>, Vec<bool>, Steps) {
+        json_values: Vec<Option<bool>>,
+        correct_items: &mut [Option<bool>],
+    ) -> (usize, Vec<i32>, Vec<Option<bool>>, Vec<Option<bool>>, Steps) {
         let mut json_obj = AnnotatedStore {
             indices: json_indices,
             values: json_values,
@@ -94,45 +95,52 @@ impl<'a> Step {
             }
             StepMessage::MarkAsCorrect() => {
                 if curr_idx < &mut correct_items.len() {
-                    correct_items[*curr_idx] = true;
-                    update_json(&mut json_obj, *curr_idx as i32, true);
+                    correct_items[*curr_idx] = Some(true);
+                    update_json(&mut json_obj, *curr_idx as i32, Some(true));
                 }
             }
             StepMessage::MarkAsIncorrect() => {
                 if curr_idx < &mut correct_items.len() {
-                    correct_items[*curr_idx] = false;
-                    update_json(&mut json_obj, *curr_idx as i32, false);
+                    correct_items[*curr_idx] = Some(false);
+                    update_json(&mut json_obj, *curr_idx as i32, Some(false));
                 }
             }
             StepMessage::Export() => {
                 write_json(&json_obj);
             }
             StepMessage::ChooseFolderPath() => {
-                let new_folder_path = FileDialog::new()
-                    .set_directory(".")
-                    .pick_folder()
-                    .unwrap_or_default();
+                let new_folder_path = FileDialog::new().set_directory(".").pick_folder();
 
-                let new_folder_path_as_str =
-                    new_folder_path.into_os_string().into_string().unwrap();
-                let new_all_images = get_all_images(&new_folder_path_as_str);
-                let new_json_obj: AnnotatedStore = init_json_obj(new_all_images.len());
-                let mut steps_obj = Steps::new(
-                    new_folder_path_as_str,
-                    0,
-                    new_all_images.clone(),
-                    vec![],
-                    new_json_obj,
-                );
-                steps_obj.correct_items = vec![false; new_all_images.len()];
-                steps_obj.modified = true;
-                json_obj.indices = vec![];
-                json_obj.values = vec![];
-                for idx in 0..new_all_images.len() {
-                    json_obj.indices.push(idx as i32);
-                    json_obj.values.push(false);
+                if let Some(valid_path) = new_folder_path {
+                    let new_folder_path_as_str = valid_path.into_os_string().into_string().unwrap();
+                    let new_all_images = get_all_images(&new_folder_path_as_str);
+                    let new_json_obj: AnnotatedStore = init_json_obj(new_all_images.len());
+                    let mut steps_obj = Steps::new(
+                        new_folder_path_as_str,
+                        0,
+                        new_all_images.clone(),
+                        vec![],
+                        new_json_obj,
+                    );
+                    steps_obj.correct_items = vec![None; new_all_images.len()];
+                    steps_obj.modified = true;
+                    json_obj.indices = vec![];
+                    json_obj.values = vec![];
+                    for idx in 0..new_all_images.len() {
+                        json_obj.indices.push(idx as i32);
+                        json_obj.values.push(None);
+                    }
+                    steps_obj.btn_status = true;
+                    new_steps_obj = steps_obj;
+                    unsafe {
+                        FOLDER_FOUND = true;
+                    }
+                } else {
+                    new_steps_obj.btn_status = false;
+                    unsafe {
+                        FOLDER_FOUND = false;
+                    }
                 }
-                new_steps_obj = steps_obj;
             }
         };
 
@@ -155,11 +163,10 @@ impl<'a> Step {
 
     pub fn view(&self, obj: &Steps) -> Element<StepMessage> {
         match self {
-            Step::WelcomeWithFolderChoose => Self::welcome(),
-            Step::Images => Self::images(obj),
-            Step::End => Self::end(),
+            Step::WelcomeWithFolderChoose => Self::welcome().into(),
+            Step::Images => Self::images(obj).into(),
+            Step::End => Self::end().into(),
         }
-        .into()
     }
 
     pub fn container_(title: &str) -> Column<'a, StepMessage, Renderer> {
@@ -167,17 +174,26 @@ impl<'a> Step {
     }
 
     pub fn welcome() -> Column<'a, StepMessage, Renderer> {
-        let file_choose_button =
-            button(text("Select folder")).on_press(StepMessage::ChooseFolderPath());
-
-        column![container(row![file_choose_button])]
+        unsafe {
+            if FOLDER_FOUND {
+                let file_choose_button = button(text("Select folder"))
+                    .on_press(StepMessage::ChooseFolderPath())
+                    .style(theme::Button::Secondary);
+                column![container(row![file_choose_button])]
+            } else {
+                let file_choose_button = button(text("Select folder"))
+                    .on_press(StepMessage::ChooseFolderPath())
+                    .style(theme::Button::Primary);
+                column![container(row![file_choose_button])]
+            }
+        }
     }
 
     pub fn create_info(
         curr_idx: &usize,
         len_images: &usize,
         folder_path: &str,
-        correct_items: &[bool],
+        correct_items: &[Option<bool>],
     ) -> Container<'a, StepMessage, Renderer> {
         let curr_idx_text = text(format!("curr_idx: {}", curr_idx)).size(20);
         let len_images_text = text(format!("Total Images: {}", len_images)).size(20);
@@ -185,8 +201,9 @@ impl<'a> Step {
         let mut val: &str = "No Image";
         if *curr_idx < correct_items.len() {
             val = match correct_items[*curr_idx] {
-                true => "Correct",
-                false => "Incorrect",
+                Some(true) => "Correct",
+                Some(false) => "Incorrect",
+                None => "Not selected yet",
             };
         }
         let correct_item_text = text(format!("Current selection: {}", val)).size(20);
@@ -323,11 +340,11 @@ impl<'a> Step {
         column![container(Self::container_("End!")).center_x().center_y()]
     }
 
-    pub fn title(&self) -> &str {
+    pub fn title(&self) -> String {
         match self {
-            Step::WelcomeWithFolderChoose => "Welcome",
-            Step::Images => "Images",
-            Step::End => "End",
+            Step::WelcomeWithFolderChoose => "Welcome".to_string(),
+            Step::Images => "Images".to_string(),
+            Step::End => "End".to_string(),
         }
     }
 }
@@ -342,27 +359,31 @@ pub fn fetch_image(all_images: Vec<PathBuf>, curr_idx: &usize) -> Result<Handle,
     Ok(Handle::from_path(path))
 }
 
-fn update_json(json_obj: &mut AnnotatedStore, idx_to_update: i32, new_value: bool) {
+fn update_json(json_obj: &mut AnnotatedStore, idx_to_update: i32, new_value: Option<bool>) {
     json_obj.indices[idx_to_update as usize] = idx_to_update;
     json_obj.values[idx_to_update as usize] = new_value;
 }
 
 fn write_json(json_obj: &AnnotatedStore) {
-    std::fs::write(
+    let res = std::fs::write(
         "output.json",
-        serde_json::to_string_pretty(json_obj).unwrap(),
+        serde_json::to_string_pretty(json_obj).unwrap_or_default(),
     );
+    match res {
+        Ok(_) => println!("Done"),
+        Err(e) => println!("Error: {}", e),
+    };
 }
 
-#[derive(Deserialize, Serialize, Debug, Default)]
+#[derive(Deserialize, Serialize, Default, Debug, Clone)]
 pub struct AnnotatedStore {
     pub indices: Vec<i32>,
-    pub values: Vec<bool>,
+    pub values: Vec<Option<bool>>,
 }
 
 pub fn init_json_obj(total_len: usize) -> AnnotatedStore {
     let init_vec = vec![0; total_len];
-    let bool_vec = vec![false; total_len];
+    let bool_vec: Vec<Option<bool>> = vec![None; total_len];
     // init_vec.iter().enumerate().map(|(idx, elem)| hash_map.insert(idx, elem));
     let json_obj = json!({"indices": init_vec, "values": bool_vec});
     let obj: AnnotatedStore = serde_json::from_value(json_obj).unwrap();
