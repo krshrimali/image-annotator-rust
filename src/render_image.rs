@@ -40,6 +40,7 @@ pub enum StepMessage {
     Next(),
     MarkAsCorrect(),
     MarkAsIncorrect(),
+    ResetSelection(),
     Export(),
     ChooseFolderPath(),
 }
@@ -103,6 +104,12 @@ impl<'a> Step {
                 if curr_idx < &mut correct_items.len() {
                     correct_items[*curr_idx] = Some(false);
                     update_json(&mut json_obj, *curr_idx as i32, Some(false));
+                }
+            }
+            StepMessage::ResetSelection() => {
+                if curr_idx < &mut correct_items.len() {
+                    correct_items[*curr_idx] = None;
+                    update_json(&mut json_obj, *curr_idx as i32, None);
                 }
             }
             StepMessage::Export() => {
@@ -208,18 +215,22 @@ impl<'a> Step {
         }
         let correct_item_text = text(format!("Current selection: {}", val)).size(20);
 
-        container(
+        container(column![
             row![
                 curr_idx_text,
                 horizontal_space(Length::Fill),
                 len_images_text,
                 horizontal_space(Length::Fill),
-                folder_path_text,
-                horizontal_space(Length::Fill),
                 correct_item_text
             ]
-            .padding(20),
-        )
+            .padding(10),
+            row![
+                horizontal_space(Length::Fill),
+                folder_path_text,
+                horizontal_space(Length::Fill),
+            ]
+            .padding(5),
+        ])
         .style(iced::theme::Container::Custom(Box::new(
             ContainerCustomStyle {
                 bg_color: iced::Background::Color(iced::Color::WHITE),
@@ -234,6 +245,7 @@ impl<'a> Step {
             button(text("Mark as Correct").size(20)).on_press(StepMessage::MarkAsCorrect());
         let incorrect_btn =
             button(text("Mark as Incorrect").size(20)).on_press(StepMessage::MarkAsIncorrect());
+        let reset_btn = button(text("Reset Selection").size(20)).on_press(StepMessage::ResetSelection());
         let mut previous_btn: Option<Button<StepMessage, Renderer>> =
             Some(button(text("Previous Image").size(20)).on_press(StepMessage::Previous()));
         let mut next_btn: Option<Button<StepMessage, Renderer>> =
@@ -316,9 +328,15 @@ impl<'a> Step {
             // .width(Length::Fill)
             // .height(Length::FillPortion(4)),
             container(
-                row![correct_btn, horizontal_space(Length::Fill), incorrect_btn]
-                    .spacing(20)
-                    .padding(10)
+                row![
+                    correct_btn,
+                    horizontal_space(Length::Fill),
+                    reset_btn,
+                    horizontal_space(Length::Fill),
+                    incorrect_btn
+                ]
+                .spacing(20)
+                .padding(10)
             ),
             // .height(Length::FillPortion(1))
             // .width(Length::FillPortion(1)),

@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 serde = {version = "*", features=["derive"]}
 iced = { version = "*", features = ["image", "debug"] }
+iced_style = "*"
 iced_core = "*"
 iced_native = "*"
 itertools = "*"
