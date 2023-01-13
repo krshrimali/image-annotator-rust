@@ -45,7 +45,7 @@ impl Sandbox for FolderVisualizer {
     fn new() -> FolderVisualizer {
         let folder_path: String = "".into();
         let all_images = vec![];
-        let json_obj: AnnotatedStore = init_json_obj(all_images.len());
+        let json_obj: AnnotatedStore = init_json_obj(folder_path.clone(), all_images.clone());
         let mut steps_obj = Steps::new(folder_path, 0, all_images.clone(), vec![], json_obj);
         steps_obj.correct_items = vec![None; all_images.len()];
         // steps_obj.buttons = HashMap::new();
@@ -138,27 +138,50 @@ impl Steps {
     }
 
     pub fn update(&mut self, msg: StepMessage) {
-        let (new_idx, new_indices, new_values, new_correct_items, new_steps_obj) =
+        let (new_idx, new_image_prop_map, new_annotation, new_correct_items, new_steps_obj) =
             self.steps[self.current].update(
                 msg,
                 &mut self.curr_idx,
-                self.json_obj.indices.clone(),
-                self.json_obj.values.clone(),
+                self.folder_path.clone(),
+                &mut self.json_obj.image_to_properties_map,
                 &mut self.correct_items,
             );
         if new_steps_obj.modified {
             self.curr_idx = new_steps_obj.curr_idx;
             self.correct_items = new_steps_obj.correct_items;
             self.folder_path = new_steps_obj.folder_path;
+            self.json_obj.image_to_properties_map = new_image_prop_map;
             self.all_images = new_steps_obj.all_images;
-            self.json_obj.indices = new_indices;
-            self.json_obj.values = new_values;
         } else {
             self.curr_idx = new_idx;
-            self.json_obj.indices = new_indices;
-            self.json_obj.values = new_values;
+            // self.json_obj.image_to_properties_map.get_mut(&self.folder_path).unwrap().get_mut(self.curr_idx).unwrap().annotation = new_annotation;
+            // self.json_obj.image_to_properties_map = new_image_prop_map;
             self.correct_items = new_correct_items;
+            self.json_obj
+                .image_to_properties_map
+                .get_mut(&self.folder_path)
+                .unwrap()
+                .get_mut(self.curr_idx)
+                .unwrap()
+                .annotation = new_annotation;
         }
+        // let prop_for_folder = self
+        //     .json_obj
+        //     .image_to_properties_map
+        //     .get_mut(&self.folder_path);
+        println!("json_obj here: {:?}", self.json_obj);
+
+        // if let Some(prop) = prop_for_folder {
+        //     let property = prop.get_mut(self.curr_idx);
+        //     if let Some(valid_prop) = property {
+        //         valid_prop.annotation = new_annotation;
+        //     }
+        // }
+        // println!(
+        //     "New ann: {:?}, new map: {:?}",
+        //     new_annotation, new_image_prop_map.clone()
+        // );
+        // self.json_obj.image_to_properties_map = new_image_prop_map;
     }
 
     pub fn view(&self) -> Element<StepMessage> {
