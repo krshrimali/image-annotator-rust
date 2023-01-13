@@ -1,0 +1,24 @@
+{
+  "image_to_properties_map": {
+    "/Users/krshrimali/Documents/krshrimali/projects/image-annotator-rust-app/sample_folder": [
+      {
+        "index": 0,
+        "image_path": "/Users/krshrimali/Documents/krshrimali/projects/image-annotator-rust-app/sample_folder/sample.webp",
+        "annotation": true,
+        "comments": null
+      },
+      {
+        "index": 1,
+        "image_path": "/Users/krshrimali/Documents/krshrimali/projects/image-annotator-rust-app/sample_folder/Demo.png",
+        "annotation": false,
+        "comments": null
+      },
+      {
+        "index": 2,
+        "image_path": "/Users/krshrimali/Documents/krshrimali/projects/image-annotator-rust-app/sample_folder/nature-3082832__480.jpg",
+        "annotation": true,
+        "comments": null
+      }
+    ]
+  }
+}
