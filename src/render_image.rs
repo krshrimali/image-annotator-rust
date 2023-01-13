@@ -15,7 +15,6 @@ use iced_native::{
     widget::{image, Button, Column},
 };
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
 use super::{get_all_images, Steps};
 
@@ -84,11 +83,11 @@ impl<'a> Step {
         image_properties_map_vec: &mut HashMap<String, Vec<Properties>>,
         correct_items: &mut [Option<bool>],
     ) -> (
-        usize,  // new idx
-        HashMap<String, Vec<Properties>>,  // new prop map
-        Option<bool>,  // new annotation value
-        Vec<Option<bool>>,  // new list of annotation values
-        Steps,  // revised Steps
+        usize,                            // new idx
+        HashMap<String, Vec<Properties>>, // new prop map
+        Option<bool>,                     // new annotation value
+        Vec<Option<bool>>,                // new list of annotation values
+        Steps,                            // revised Steps
     ) {
         let mut new_annotation: Option<bool> = match image_properties_map_vec.get(&folder_path) {
             Some(vec_prop_map) => {
@@ -97,7 +96,7 @@ impl<'a> Step {
                 } else {
                     None
                 }
-            },
+            }
             None => None,
         };
         let mut json_obj = AnnotatedStore {
@@ -116,42 +115,18 @@ impl<'a> Step {
                 if curr_idx < &mut correct_items.len() {
                     correct_items[*curr_idx] = Some(true);
                     new_annotation = Some(true);
-                    // json_obj
-                    //     .image_to_properties_map
-                    //     .get(&folder_path)
-                    //     .unwrap()
-                    //     .get(*curr_idx)
-                    //     .unwrap()
-                    //     .to_owned()
-                    //     .annotation = Some(true);
                 }
             }
             StepMessage::MarkAsIncorrect() => {
                 if curr_idx < &mut correct_items.len() {
                     correct_items[*curr_idx] = Some(false);
-                    // update_json(&mut json_obj, folder_path.clone(), *curr_idx, Some(false));
                     new_annotation = Some(false);
-                        // .image_to_properties_map
-                        // .get(&folder_path)
-                        // .unwrap()
-                        // .get(*curr_idx)
-                        // .unwrap()
-                        // .annotation = Some(false);
                 }
             }
             StepMessage::ResetSelection() => {
                 if curr_idx < &mut correct_items.len() {
                     correct_items[*curr_idx] = None;
                     new_annotation = None;
-                    // println!("json_obj: {:?}", json_obj);
-                    // json_obj
-                    //     .image_to_properties_map
-                    //     .get(&folder_path)
-                    //     .unwrap()
-                    //     .get(*curr_idx)
-                    //     .unwrap()
-                    //     .to_owned()
-                    //     .annotation = None;
                 }
             }
             StepMessage::Export() => {
@@ -181,7 +156,6 @@ impl<'a> Step {
                     new_steps_obj = steps_obj;
 
                     json_obj.image_to_properties_map = new_json_obj.image_to_properties_map;
-                    println!("Here we have this: {:?}", json_obj);
 
                     unsafe {
                         FOLDER_FOUND = true;
@@ -195,10 +169,9 @@ impl<'a> Step {
             }
         };
 
-        println!("Final: {:?}", json_obj.image_to_properties_map);
         (
             *curr_idx,
-            json_obj.image_to_properties_map.clone(),
+            json_obj.image_to_properties_map,
             new_annotation,
             correct_items.to_vec(),
             new_steps_obj,
@@ -423,23 +396,6 @@ pub fn fetch_image(all_images: Vec<PathBuf>, curr_idx: &usize) -> Result<Handle,
     Ok(Handle::from_path(path))
 }
 
-// fn update_json(
-//     json_obj: &mut AnnotatedStore,
-//     folder_path_to_update: String,
-//     idx_to_update: usize,
-//     annotation_val: Option<bool>,
-// ) {
-//     // json_obj.indices[idx_to_update as usize] = idx_to_update;
-//     // json_obj.values[idx_to_update as usize] = new_value;
-//     // json_obj
-//     //     .image_to_properties_map
-//     //     .get(&folder_path_to_update)
-//     //     .unwrap()
-//     //     .get(&idx_to_update)
-//     //     .unwrap().annotation = annotation_val;
-//     *json_obj.image_to_properties_map.get(&folder_path_to_update).unwrap().get(&idx_to_update).unwrap();
-// }
-
 fn write_json(json_obj: &AnnotatedStore) {
     let res = std::fs::write(
         "output.json",
@@ -462,30 +418,20 @@ pub struct Properties {
 #[derive(Deserialize, Serialize, Default, Debug, Clone)]
 pub struct AnnotatedStore {
     pub image_to_properties_map: HashMap<String, Vec<Properties>>,
-    // pub indices: Vec<i32>,
-    // pub image_paths: Vec<String>,
-    // pub correct_indices: Vec<i32>,
-    // pub incorrect_indices: Vec<i32>,
-    // pub left_out: Vec<i32>,
-    // pub values: Vec<Option<bool>>,
 }
 
 pub fn init_json_obj(folder_path: String, all_paths: Vec<PathBuf>) -> AnnotatedStore {
     let mut image_to_properties_map = HashMap::new();
     let mut vec_maps = vec![];
     for (idx, path) in all_paths.iter().enumerate() {
-        // let mut prop_map = HashMap::new();
         let path_str = path.to_str().unwrap().to_string();
         let selected_option = None;
-        // prop_map.insert(
-        //     idx,
         let properties = Properties {
             index: idx,
             image_path: path_str,
             annotation: selected_option,
             comments: None, // TODO
         };
-        // );
         vec_maps.push(properties);
     }
     image_to_properties_map.insert(folder_path, vec_maps);
