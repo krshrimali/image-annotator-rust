@@ -255,10 +255,12 @@ impl<'a> Step {
         len_images: &usize,
         folder_path: &str,
         correct_items: &[Option<bool>],
+        image_file_name: String,
     ) -> Container<'a, StepMessage, Renderer> {
-        let curr_idx_text = text(format!("Current Item: {}", curr_idx+1)).size(20);
+        let curr_idx_text = text(format!("Current Item: {}", curr_idx + 1)).size(20);
         let len_images_text = text(format!("Total Images: {}", len_images)).size(20);
         let folder_path_text = text(format!("Folder Path: {}", folder_path)).size(20);
+        let image_file_path_text = text(format!("Image file name: {}", image_file_name)).size(20);
         let mut val: &str = "No Image";
         if *curr_idx < correct_items.len() {
             val = match correct_items[*curr_idx] {
@@ -275,7 +277,9 @@ impl<'a> Step {
                 horizontal_space(Length::Fill),
                 len_images_text,
                 horizontal_space(Length::Fill),
-                correct_item_text
+                correct_item_text,
+                horizontal_space(Length::Fill),
+                image_file_path_text,
             ]
             .padding(10),
             row![
@@ -348,21 +352,29 @@ impl<'a> Step {
                 .spacing(10)
                 .align_items(iced::Alignment::Fill)
         };
-        let img_row = container(row![image::viewer(
-            fetch_image(obj.all_images.clone(), &obj.curr_idx).unwrap()
-        )])
-        .width(Length::Fill)
-        .style(iced::theme::Container::Custom(Box::new(
-            ContainerCustomStyle {
-                bg_color: iced::Background::Color(iced::Color::WHITE),
-            },
-        )));
+        let img_handle = fetch_image(obj.all_images.clone(), &obj.curr_idx);
+        let mut img_row = match img_handle {
+            Ok(valid_img_handle) => container(row![image::viewer(valid_img_handle)]),
+            Err(e) => {
+                container(row![text(format!("Not a valid image, sorry! Error: {}", e))].padding(20))
+            }
+        };
 
+        img_row = img_row
+            .width(Length::Fill)
+            .style(iced::theme::Container::Custom(Box::new(
+                ContainerCustomStyle {
+                    bg_color: iced::Background::Color(iced::Color::WHITE),
+                },
+            )));
+
+        let file_name = obj.all_images[obj.curr_idx].file_name().unwrap().to_str().unwrap();
         let info_row = Self::create_info(
             &obj.curr_idx,
             &obj.all_images.len(),
             &obj.folder_path,
             &obj.correct_items,
+            file_name.to_string(),
         );
 
         // container(
@@ -447,14 +459,21 @@ impl<'a> Step {
     }
 }
 
-pub fn fetch_image(all_images: Vec<PathBuf>, curr_idx: &usize) -> Result<Handle, reqwest::Error> {
+pub fn fetch_image(all_images: Vec<PathBuf>, curr_idx: &usize) -> Result<Handle, std::io::Error> {
     // TODO: Set a default image to show that we are waiting for an image...// folder is empty
     // TODO: Handle cases when the curr_idx is out of bound/negative
-    let path: PathBuf = all_images
-        .get(*curr_idx)
-        .unwrap_or(&PathBuf::default())
-        .to_owned();
-    Ok(Handle::from_path(path))
+    let path: PathBuf = all_images.get(*curr_idx).unwrap().to_owned();
+    let img_validation_result = imghdr::from_file(path.clone());
+    match img_validation_result {
+        Ok(if_none) => match if_none {
+            Some(_) => Ok(Handle::from_path(path)),
+            None => Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Invalid file!!",
+            )),
+        },
+        Err(e) => Err(e),
+    }
 }
 
 pub fn load_json_and_update(path_str: &str, json_obj: &AnnotatedStore) {
