@@ -22,6 +22,8 @@ pub struct Steps {
     current: usize,
     modified: bool,
     btn_status: bool,
+    new_message: String,
+    incorrect_btn_clicked: bool,
 }
 
 #[derive(Default)]
@@ -48,7 +50,6 @@ impl Sandbox for FolderVisualizer {
         let json_obj: AnnotatedStore = init_json_obj(folder_path.clone(), all_images.clone());
         let mut steps_obj = Steps::new(folder_path, 0, all_images.clone(), vec![], json_obj);
         steps_obj.correct_items = vec![None; all_images.len()];
-        // steps_obj.buttons = HashMap::new();
         FolderVisualizer { steps: steps_obj }
     }
 
@@ -134,18 +135,30 @@ impl Steps {
             current: 0,
             modified: false,
             btn_status: false,
+            new_message: "".to_string(),
+            incorrect_btn_clicked: false,
         }
     }
 
     pub fn update(&mut self, msg: StepMessage) {
-        let (new_idx, new_image_prop_map, new_annotation, new_correct_items, new_steps_obj) =
-            self.steps[self.current].update(
-                msg,
-                &mut self.curr_idx,
-                self.folder_path.clone(),
-                &mut self.json_obj.image_to_properties_map,
-                &mut self.correct_items,
-            );
+        let (
+            new_idx,
+            new_image_prop_map,
+            new_annotation,
+            new_correct_items,
+            new_comment,
+            new_steps_obj,
+        ) = self.steps[self.current].update(
+            msg,
+            &mut self.curr_idx,
+            self.folder_path.clone(),
+            &mut self.json_obj.image_to_properties_map,
+            self.new_message.clone(),
+            self.incorrect_btn_clicked,
+            &mut self.correct_items,
+        );
+
+        self.incorrect_btn_clicked = new_steps_obj.incorrect_btn_clicked;
         if new_steps_obj.modified {
             self.curr_idx = new_steps_obj.curr_idx;
             self.correct_items = new_steps_obj.correct_items;
@@ -164,24 +177,19 @@ impl Steps {
                 .get_mut(self.curr_idx)
                 .unwrap()
                 .annotation = new_annotation;
+            self.json_obj
+                .image_to_properties_map
+                .get_mut(&self.folder_path)
+                .unwrap()
+                .get_mut(self.curr_idx)
+                .unwrap()
+                .comments = Some(new_comment.clone().unwrap_or_default());
         }
-        // let prop_for_folder = self
-        //     .json_obj
-        //     .image_to_properties_map
-        //     .get_mut(&self.folder_path);
-        println!("json_obj here: {:?}", self.json_obj);
-
-        // if let Some(prop) = prop_for_folder {
-        //     let property = prop.get_mut(self.curr_idx);
-        //     if let Some(valid_prop) = property {
-        //         valid_prop.annotation = new_annotation;
-        //     }
-        // }
-        // println!(
-        //     "New ann: {:?}, new map: {:?}",
-        //     new_annotation, new_image_prop_map.clone()
-        // );
-        // self.json_obj.image_to_properties_map = new_image_prop_map;
+        if let Some(msg_valid) = new_comment {
+            self.new_message = msg_valid;
+        } else {
+            self.new_message.clear();
+        }
     }
 
     pub fn view(&self) -> Element<StepMessage> {

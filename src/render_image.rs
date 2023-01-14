@@ -6,7 +6,7 @@ use rfd::FileDialog;
 
 use iced::{
     theme,
-    widget::{button, container, horizontal_space, row, text, Container},
+    widget::{button, container, horizontal_space, row, text, text_input, Container},
     Element, Length, Renderer,
 };
 use iced_native::{
@@ -42,6 +42,8 @@ pub enum StepMessage {
     ResetSelection(),
     Export(),
     ChooseFolderPath(),
+    CommentAdded(String),
+    CommentType(String),
 }
 
 #[derive(Clone, Debug)]
@@ -76,18 +78,18 @@ impl<'a> Step {
         &'a mut self,
         msg: StepMessage,
         curr_idx: &mut usize,
-        // json_indices: Vec<i32>,
-        // json_values: Vec<Option<bool>>,
         folder_path: String,
-        // image_properties_map_vec: &mut HashMap<String, HashMap<usize, Properties>>,
         image_properties_map_vec: &mut HashMap<String, Vec<Properties>>,
+        old_msg: String,
+        old_incorrect_btn_clicked: bool,
         correct_items: &mut [Option<bool>],
     ) -> (
         usize,                            // new idx
         HashMap<String, Vec<Properties>>, // new prop map
         Option<bool>,                     // new annotation value
         Vec<Option<bool>>,                // new list of annotation values
-        Steps,                            // revised Steps
+        Option<String>,
+        Steps, // revised Steps
     ) {
         let mut new_annotation: Option<bool> = match image_properties_map_vec.get(&folder_path) {
             Some(vec_prop_map) => {
@@ -102,35 +104,71 @@ impl<'a> Step {
         let mut json_obj = AnnotatedStore {
             image_to_properties_map: image_properties_map_vec.clone(),
         };
-        let mut new_steps_obj = Steps::default();
+        let mut new_steps_obj = Steps {
+            incorrect_btn_clicked: old_incorrect_btn_clicked,
+            new_message: old_msg,
+            ..Default::default()
+        };
+
+        let mut new_comment = match image_properties_map_vec.get(&folder_path) {
+            Some(vec_prop_map) => {
+                if let Some(prop_map) = vec_prop_map.get(*curr_idx) {
+                    if let Some(comment) = &prop_map.comments {
+                        Some(comment.to_string())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
+            None => None,
+        };
 
         match msg {
             StepMessage::Next() => {
                 *curr_idx += 1;
+                new_steps_obj.incorrect_btn_clicked = false;
             }
             StepMessage::Previous() => {
                 *curr_idx -= 1;
+                new_steps_obj.incorrect_btn_clicked = false;
             }
             StepMessage::MarkAsCorrect() => {
                 if curr_idx < &mut correct_items.len() {
                     correct_items[*curr_idx] = Some(true);
                     new_annotation = Some(true);
+                    new_steps_obj.incorrect_btn_clicked = false;
                 }
             }
             StepMessage::MarkAsIncorrect() => {
                 if curr_idx < &mut correct_items.len() {
                     correct_items[*curr_idx] = Some(false);
                     new_annotation = Some(false);
+                    new_steps_obj.incorrect_btn_clicked = true;
                 }
             }
             StepMessage::ResetSelection() => {
                 if curr_idx < &mut correct_items.len() {
                     correct_items[*curr_idx] = None;
                     new_annotation = None;
+                    new_steps_obj.incorrect_btn_clicked = false;
                 }
             }
             StepMessage::Export() => {
                 write_json(&json_obj);
+                new_steps_obj.incorrect_btn_clicked = false;
+            }
+            StepMessage::CommentAdded(entered_comment) => {
+                new_steps_obj.new_message.clear();
+                new_steps_obj.new_message = entered_comment;
+                new_steps_obj.incorrect_btn_clicked = false;
+                // NOTE: Enable this if you want to disable "Send" button after clicking it (make msg required)
+                // new_comment = None;
+            }
+            StepMessage::CommentType(entered_comment) => {
+                new_steps_obj.new_message = entered_comment.clone();
+                new_comment = Some(entered_comment);
             }
             StepMessage::ChooseFolderPath() => {
                 let new_folder_path = FileDialog::new().set_directory(".").pick_folder();
@@ -174,6 +212,7 @@ impl<'a> Step {
             json_obj.image_to_properties_map,
             new_annotation,
             correct_items.to_vec(),
+            new_comment,
             new_steps_obj,
         )
     }
@@ -275,7 +314,6 @@ impl<'a> Step {
                 next_btn = Some(next_btn.unwrap().style(iced::theme::Button::Primary));
             }
             false => {
-                // next_btn = next_btn.style(iced::theme::Button::Secondary).on_press(StepMessage::Exit());
                 next_btn = None;
             }
         }
@@ -288,9 +326,31 @@ impl<'a> Step {
                 previous_btn = None;
             }
         };
-        // let img_row = container(row![image::viewer(
-        //     fetch_image(obj.all_images.clone(), &obj.curr_idx).unwrap()
-        // ).width(Length::Units(600)).height(Length::Units(800))])
+
+        let new_message_input = {
+            let mut input = text_input(
+                "(Optional) Type your reason here...",
+                &obj.new_message,
+                StepMessage::CommentType,
+            )
+            .padding(10);
+
+            let mut button = button(
+                text("Done")
+                    .height(Length::Fill)
+                    .vertical_alignment(iced::alignment::Vertical::Center),
+            )
+            .padding([0, 20]);
+
+            if let Some(valid_msg) = msg_check(obj.new_message.clone()) {
+                input = input.on_submit(StepMessage::CommentAdded(valid_msg.clone()));
+                button = button.on_press(StepMessage::CommentAdded(valid_msg));
+            }
+
+            row![input, button]
+                .spacing(10)
+                .align_items(iced::Alignment::Fill)
+        };
         let img_row = container(row![image::viewer(
             fetch_image(obj.all_images.clone(), &obj.curr_idx).unwrap()
         )])
@@ -319,12 +379,14 @@ impl<'a> Step {
                     export_btn,
                     horizontal_space(Length::Fill),
                     next_btn_valid,
+                    horizontal_space(Length::Fill),
                 ],
                 None => row![
                     horizontal_space(Length::Fill),
                     export_btn,
                     horizontal_space(Length::Fill),
                     next_btn_valid,
+                    horizontal_space(Length::Fill),
                 ],
             },
             None => match previous_btn {
@@ -341,24 +403,39 @@ impl<'a> Step {
                 ],
             },
         };
-        column![container(column![
-            // container(img_row).width(Length::FillPortion(2)).height(Length::FillPortion(2)),
-            container(img_row),
-            // .width(Length::Fill)
-            // .height(Length::FillPortion(4)),
-            container(
+        let image_option_buttons = match obj.incorrect_btn_clicked {
+            false => container(
                 row![
                     correct_btn,
                     horizontal_space(Length::Fill),
                     reset_btn,
                     horizontal_space(Length::Fill),
-                    incorrect_btn
+                    incorrect_btn,
                 ]
                 .spacing(20)
-                .padding(10)
+                .padding(10),
             ),
+            true => container(
+                row![
+                    correct_btn,
+                    horizontal_space(Length::Fill),
+                    reset_btn,
+                    horizontal_space(Length::Fill),
+                    new_message_input,
+                ]
+                .spacing(20)
+                .padding(10),
+            ),
+        };
+
+        column![container(column![
+            // container(img_row).width(Length::FillPortion(2)).height(Length::FillPortion(2)),
+            container(img_row),
+            // .width(Length::Fill)
+            // .height(Length::FillPortion(4)),
             // .height(Length::FillPortion(1))
             // .width(Length::FillPortion(1)),
+            image_option_buttons,
             info_row,
             // .height(Length::FillPortion(1))
             // .width(Length::FillPortion(1))
@@ -439,4 +516,12 @@ pub fn init_json_obj(folder_path: String, all_paths: Vec<PathBuf>) -> AnnotatedS
     AnnotatedStore {
         image_to_properties_map,
     }
+}
+
+pub fn msg_check(msg: String) -> Option<String> {
+    // if msg.is_() {
+    //     None
+    // } else {
+    Some(msg)
+    // }
 }
