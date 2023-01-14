@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 
 use iced::{
     theme,
@@ -71,9 +71,7 @@ impl Sandbox for FolderVisualizer {
 
         controls = controls.push(horizontal_space(Length::Fill));
 
-        // let (new_btn_status, element_view) = steps.view();
         let element_view = steps.view();
-        // println!("new status: {}", new_btn_status);
         if steps.can_continue() {
             unsafe {
                 if render_image::FOLDER_FOUND {
@@ -98,8 +96,6 @@ impl Sandbox for FolderVisualizer {
 
         let scrollable = scrollable(container(content).width(Length::Fill).center_x());
         container(scrollable).height(Length::Fill).center_y().into()
-        // scrollable(container(content)).into()
-        // container(content).into()
     }
 
     fn update(&mut self, message: Self::Message) {
@@ -167,8 +163,6 @@ impl Steps {
             self.all_images = new_steps_obj.all_images;
         } else {
             self.curr_idx = new_idx;
-            // self.json_obj.image_to_properties_map.get_mut(&self.folder_path).unwrap().get_mut(self.curr_idx).unwrap().annotation = new_annotation;
-            // self.json_obj.image_to_properties_map = new_image_prop_map;
             self.correct_items = new_correct_items;
             self.json_obj
                 .image_to_properties_map
@@ -217,6 +211,7 @@ impl Steps {
         self.current > 0
     }
 
+    // NOTE: Following 2 functions are not used right now
     pub fn enable_next_button(&mut self) {
         self.btn_status = true;
     }

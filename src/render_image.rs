@@ -1,5 +1,3 @@
-// use iced::Length;
-
 use std::{collections::HashMap, path::PathBuf};
 
 use rfd::FileDialog;
@@ -113,11 +111,10 @@ impl<'a> Step {
         let mut new_comment = match image_properties_map_vec.get(&folder_path) {
             Some(vec_prop_map) => {
                 if let Some(prop_map) = vec_prop_map.get(*curr_idx) {
-                    if let Some(comment) = &prop_map.comments {
-                        Some(comment.to_string())
-                    } else {
-                        None
-                    }
+                    prop_map
+                        .comments
+                        .as_ref()
+                        .map(|comment| comment.to_string())
                 } else {
                     None
                 }
@@ -429,25 +426,12 @@ impl<'a> Step {
         };
 
         column![container(column![
-            // container(img_row).width(Length::FillPortion(2)).height(Length::FillPortion(2)),
             container(img_row),
-            // .width(Length::Fill)
-            // .height(Length::FillPortion(4)),
-            // .height(Length::FillPortion(1))
-            // .width(Length::FillPortion(1)),
             image_option_buttons,
             info_row,
-            // .height(Length::FillPortion(1))
-            // .width(Length::FillPortion(1))
             next_prev_buttons_row.spacing(20).padding(10)
         ])
         .center_y()]
-        // .align_items(iced::Alignment::Center)
-        // )
-        // .center_y()
-        // .align_x(iced::alignment::Horizontal::Center)
-        // .align_y(iced::alignment::Vertical::Center)
-        // .into()
     }
 
     pub fn end() -> Column<'a, StepMessage, Renderer> {
@@ -478,9 +462,13 @@ pub fn load_json_and_update(path_str: &str, json_obj: &AnnotatedStore) {
         let content = std::fs::read_to_string(path_str).ok().unwrap();
         let mut v: AnnotatedStore = serde_json::from_str(&content).ok().unwrap();
         for (folder_path, val) in json_obj.image_to_properties_map.iter() {
-            v.image_to_properties_map.insert(folder_path.to_string(), val.to_vec());
+            v.image_to_properties_map
+                .insert(folder_path.to_string(), val.to_vec());
         }
-        let res = std::fs::write("output.json", serde_json::to_string_pretty(&v).unwrap_or_default());
+        let res = std::fs::write(
+            "output.json",
+            serde_json::to_string_pretty(&v).unwrap_or_default(),
+        );
         match res {
             Ok(_) => println!("Done"),
             Err(_) => println!("Error"),
@@ -499,14 +487,6 @@ pub fn load_json_and_update(path_str: &str, json_obj: &AnnotatedStore) {
 
 fn write_json(json_obj: &AnnotatedStore) {
     load_json_and_update("output.json", json_obj);
-    // let res = std::fs::write(
-    //     "output.json",
-    //     serde_json::to_string_pretty(json_obj).unwrap_or_default(),
-    // );
-    // match res {
-    //     Ok(_) => println!("Done"),
-    //     Err(e) => println!("Error: {}", e),
-    // };
 }
 
 #[derive(Deserialize, Serialize, Default, Debug, Clone)]
