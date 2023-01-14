@@ -256,7 +256,7 @@ impl<'a> Step {
         folder_path: &str,
         correct_items: &[Option<bool>],
     ) -> Container<'a, StepMessage, Renderer> {
-        let curr_idx_text = text(format!("curr_idx: {}", curr_idx)).size(20);
+        let curr_idx_text = text(format!("Current Item: {}", curr_idx+1)).size(20);
         let len_images_text = text(format!("Total Images: {}", len_images)).size(20);
         let folder_path_text = text(format!("Folder Path: {}", folder_path)).size(20);
         let mut val: &str = "No Image";
