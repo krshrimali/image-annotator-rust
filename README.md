@@ -10,7 +10,8 @@
 6. See the info (track current image path, folder path, total files etc.) in the window itself.
 7. Invalid files are ignored, and a proper text is shown instead of the image viewer.
 8. Any sub-directories in the selected folder are ignored.
-9. Built 100% with Rust, GUI built using [Iced library](https://github.com/iced-rs/iced/)
+9. Image file sizes are retained, and the app is scrollable + resizable.
+10. Built 100% with Rust, GUI built using [Iced library](https://github.com/iced-rs/iced/)
 
 ## Description and Demo
 
@@ -28,6 +29,12 @@
 - Option to mark as correct/incorrect or reset selection.
 - Click `Export` to export the results to a JSON file. (`output.json` in the folder where you started the app from)
 - Mark as Incorrect will have an option to add comments (optional)
+
+**Invalid file**
+
+<img width="1022" alt="image" src="https://user-images.githubusercontent.com/19997320/212479642-421eb899-8b52-4ad1-aaec-8d669d7fa8fa.png">
+
+- In case a file is invalid, or the image couldn't be loaded, a message will appear and a user can see the file path in the info below to the text.
 
 **Add comments (optional)**
 
