@@ -5,19 +5,33 @@
         "index": 0,
         "image_path": "/Users/krshrimali/Documents/krshrimali/projects/image-annotator-rust-app/sample_folder/sample.webp",
         "annotation": true,
-        "comments": null
+        "comments": ""
       },
       {
         "index": 1,
         "image_path": "/Users/krshrimali/Documents/krshrimali/projects/image-annotator-rust-app/sample_folder/Demo.png",
-        "annotation": false,
-        "comments": null
+        "annotation": null,
+        "comments": ""
       },
       {
         "index": 2,
         "image_path": "/Users/krshrimali/Documents/krshrimali/projects/image-annotator-rust-app/sample_folder/nature-3082832__480.jpg",
         "annotation": true,
-        "comments": null
+        "comments": ""
+      }
+    ],
+    "/Users/krshrimali/Documents/Photos": [
+      {
+        "index": 0,
+        "image_path": "/Users/krshrimali/Documents/Photos/Kush.png",
+        "annotation": true,
+        "comments": ""
+      },
+      {
+        "index": 1,
+        "image_path": "/Users/krshrimali/Documents/Photos/tengyart-kSvpTrfhaiU-unsplash.jpg",
+        "annotation": true,
+        "comments": ""
       }
     ]
   }

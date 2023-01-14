@@ -473,15 +473,40 @@ pub fn fetch_image(all_images: Vec<PathBuf>, curr_idx: &usize) -> Result<Handle,
     Ok(Handle::from_path(path))
 }
 
+pub fn load_json_and_update(path_str: &str, json_obj: &AnnotatedStore) {
+    if std::path::Path::new(path_str).exists() {
+        let content = std::fs::read_to_string(path_str).ok().unwrap();
+        let mut v: AnnotatedStore = serde_json::from_str(&content).ok().unwrap();
+        for (folder_path, val) in json_obj.image_to_properties_map.iter() {
+            v.image_to_properties_map.insert(folder_path.to_string(), val.to_vec());
+        }
+        let res = std::fs::write("output.json", serde_json::to_string_pretty(&v).unwrap_or_default());
+        match res {
+            Ok(_) => println!("Done"),
+            Err(_) => println!("Error"),
+        }
+    } else {
+        let res = std::fs::write(
+            "output.json",
+            serde_json::to_string_pretty(json_obj).unwrap_or_default(),
+        );
+        match res {
+            Ok(_) => println!("Done"),
+            Err(_) => println!("Error"),
+        }
+    }
+}
+
 fn write_json(json_obj: &AnnotatedStore) {
-    let res = std::fs::write(
-        "output.json",
-        serde_json::to_string_pretty(json_obj).unwrap_or_default(),
-    );
-    match res {
-        Ok(_) => println!("Done"),
-        Err(e) => println!("Error: {}", e),
-    };
+    load_json_and_update("output.json", json_obj);
+    // let res = std::fs::write(
+    //     "output.json",
+    //     serde_json::to_string_pretty(json_obj).unwrap_or_default(),
+    // );
+    // match res {
+    //     Ok(_) => println!("Done"),
+    //     Err(e) => println!("Error: {}", e),
+    // };
 }
 
 #[derive(Deserialize, Serialize, Default, Debug, Clone)]
@@ -519,6 +544,7 @@ pub fn init_json_obj(folder_path: String, all_paths: Vec<PathBuf>) -> AnnotatedS
 }
 
 pub fn msg_check(msg: String) -> Option<String> {
+    // NOTE: Change this if you want to disable button by default
     // if msg.is_() {
     //     None
     // } else {
