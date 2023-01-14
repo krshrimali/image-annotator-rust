@@ -1,4 +1,18 @@
-## Description
+## Key Features
+
+**Note**: I'm actively working on this app's first release. Please hop on to the [issues page](https://github.com/krshrimali/image-annotator-rust-app/issues) if you would like to contribute.
+
+1. Select folder with images to mark annotated images.
+2. Zoom (like pinch zoom) and pan images in the view.
+3. Options available: Mark as Correct, Mark as Incorrect, Reset Selection.
+4. Export as a JSON file.
+5. The JSON file can retain previously annotated folders.
+6. See the info (track current image path, folder path, total files etc.) in the window itself.
+7. Invalid files are ignored, and a proper text is shown instead of the image viewer.
+8. Any sub-directories in the selected folder are ignored.
+9. Built 100% with Rust, GUI built using [Iced library](https://github.com/iced-rs/iced/)
+
+## Description and Demo
 
 **Welcome page - select your folder**
 
