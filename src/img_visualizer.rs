@@ -32,12 +32,36 @@ pub struct FolderVisualizer {
 }
 
 fn get_all_images(folder_path: &String) -> Vec<PathBuf> {
-    // TODO: Handle dir validation here
-    let paths = std::fs::read_dir(folder_path).unwrap();
+    let paths = std::fs::read_dir(folder_path);
     let mut output: Vec<PathBuf> = vec![];
-    for path in paths {
-        output.push(path.unwrap().path().as_path().to_owned());
-    }
+    match paths {
+        Ok(all_paths) => {
+            for path in all_paths {
+                // Initially we only check for file extensions
+                let path_obj = path.unwrap().path().as_path().to_owned();
+                let metadata = path_obj.metadata();
+                match metadata {
+                    Ok(md) => {
+                        if md.is_file() {
+                            output.push(path_obj);
+                        }
+                    }
+                    Err(e) => {
+                        println!(
+                            "Failed to get metadata for the file: {:?}, error: {}",
+                            path_obj, e
+                        );
+                    }
+                };
+            }
+        }
+        Err(e) => {
+            println!(
+                "Couldn't get files from the folder path {}, error: {}",
+                folder_path, e
+            );
+        }
+    };
     output
 }
 
