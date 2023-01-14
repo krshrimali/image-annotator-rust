@@ -11,7 +11,8 @@
 7. Invalid files are ignored, and a proper text is shown instead of the image viewer.
 8. Any sub-directories in the selected folder are ignored.
 9. Image file sizes are retained, and the app is scrollable + resizable.
-10. Built 100% with Rust, GUI built using [Iced library](https://github.com/iced-rs/iced/)
+10. Binaries are available for Windows, OSX and Linux, [here](https://github.com/krshrimali/validate-image-annotations-rust/tree/main/binaries).
+11. Built 100% with Rust, GUI built using [Iced library](https://github.com/iced-rs/iced/)
 
 ## Description and Demo
 
@@ -65,4 +66,24 @@ A sample output is given [here](https://github.com/krshrimali/image-annotator-ru
     ]
   }
 }
+```
+
+## Build from source
+
+If you are on Linux, following libraries are required:
+
+1. Rust toolchain, see: [this](https://doc.rust-lang.org/cargo/getting-started/installation.html) for instructions.
+2. `cmake`, `pkg-config`, `fontconfig`.
+3. [OpenSSL 3.0](https://openssl.org/)
+4. `libgtk-3-dev` (GTK 3.0 dev libraries)
+
+Once done, follow the instructions below:
+
+```shell
+# Build porject
+cargo build
+# Build binary for release
+cargo build --release
+# Run the app
+cargo run
 ```
