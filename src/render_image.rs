@@ -26,13 +26,13 @@ pub enum ThemeType {
 pub enum Message {
     BackPressed,
     NextPressed,
-    StepMessage(StepMessage),
+    ImageStepMessage(ImageStepMessage),
 }
 
 pub static mut FOLDER_FOUND: bool = false;
 
 #[derive(Clone, Debug)]
-pub enum StepMessage {
+pub enum ImageStepMessage {
     Previous(),
     Next(),
     MarkAsCorrect(),
@@ -74,7 +74,7 @@ impl container::StyleSheet for ContainerCustomStyle {
 impl<'a> Step {
     pub fn update(
         &'a mut self,
-        msg: StepMessage,
+        msg: ImageStepMessage,
         curr_idx: &mut usize,
         folder_path: String,
         image_properties_map_vec: &mut HashMap<String, Vec<Properties>>,
@@ -123,51 +123,52 @@ impl<'a> Step {
         };
 
         match msg {
-            StepMessage::Next() => {
+            ImageStepMessage::Next() => {
                 *curr_idx += 1;
                 new_steps_obj.incorrect_btn_clicked = false;
             }
-            StepMessage::Previous() => {
+            ImageStepMessage::Previous() => {
                 *curr_idx -= 1;
                 new_steps_obj.incorrect_btn_clicked = false;
             }
-            StepMessage::MarkAsCorrect() => {
+            ImageStepMessage::MarkAsCorrect() => {
                 if curr_idx < &mut correct_items.len() {
                     correct_items[*curr_idx] = Some(true);
                     new_annotation = Some(true);
                     new_steps_obj.incorrect_btn_clicked = false;
+                    new_comment = None;
                 }
             }
-            StepMessage::MarkAsIncorrect() => {
+            ImageStepMessage::MarkAsIncorrect() => {
                 if curr_idx < &mut correct_items.len() {
                     correct_items[*curr_idx] = Some(false);
                     new_annotation = Some(false);
                     new_steps_obj.incorrect_btn_clicked = true;
                 }
             }
-            StepMessage::ResetSelection() => {
+            ImageStepMessage::ResetSelection() => {
                 if curr_idx < &mut correct_items.len() {
                     correct_items[*curr_idx] = None;
                     new_annotation = None;
                     new_steps_obj.incorrect_btn_clicked = false;
                 }
             }
-            StepMessage::Export() => {
+            ImageStepMessage::Export() => {
                 write_json(&json_obj);
                 new_steps_obj.incorrect_btn_clicked = false;
             }
-            StepMessage::CommentAdded(entered_comment) => {
+            ImageStepMessage::CommentAdded(entered_comment) => {
                 new_steps_obj.new_message.clear();
                 new_steps_obj.new_message = entered_comment;
                 new_steps_obj.incorrect_btn_clicked = false;
                 // NOTE: Enable this if you want to disable "Send" button after clicking it (make msg required)
                 // new_comment = None;
             }
-            StepMessage::CommentType(entered_comment) => {
+            ImageStepMessage::CommentType(entered_comment) => {
                 new_steps_obj.new_message = entered_comment.clone();
                 new_comment = Some(entered_comment);
             }
-            StepMessage::ChooseFolderPath() => {
+            ImageStepMessage::ChooseFolderPath() => {
                 let new_folder_path = FileDialog::new().set_directory(".").pick_folder();
 
                 if let Some(valid_path) = new_folder_path {
@@ -222,7 +223,7 @@ impl<'a> Step {
         }
     }
 
-    pub fn view(&self, obj: &Steps) -> Element<StepMessage> {
+    pub fn view(&self, obj: &Steps) -> Element<ImageStepMessage> {
         match self {
             Step::WelcomeWithFolderChoose => Self::welcome().into(),
             Step::Images => Self::images(obj).into(),
@@ -230,20 +231,20 @@ impl<'a> Step {
         }
     }
 
-    pub fn container_(title: &str) -> Column<'a, StepMessage, Renderer> {
+    pub fn container_(title: &str) -> Column<'a, ImageStepMessage, Renderer> {
         column![text(title).size(50)].spacing(20)
     }
 
-    pub fn welcome() -> Column<'a, StepMessage, Renderer> {
+    pub fn welcome() -> Column<'a, ImageStepMessage, Renderer> {
         unsafe {
             if FOLDER_FOUND {
                 let file_choose_button = button(text("Select folder"))
-                    .on_press(StepMessage::ChooseFolderPath())
+                    .on_press(ImageStepMessage::ChooseFolderPath())
                     .style(theme::Button::Secondary);
                 column![container(row![file_choose_button])]
             } else {
                 let file_choose_button = button(text("Select folder"))
-                    .on_press(StepMessage::ChooseFolderPath())
+                    .on_press(ImageStepMessage::ChooseFolderPath())
                     .style(theme::Button::Primary);
                 column![container(row![file_choose_button])]
             }
@@ -256,7 +257,7 @@ impl<'a> Step {
         folder_path: &str,
         correct_items: &[Option<bool>],
         image_file_name: String,
-    ) -> Container<'a, StepMessage, Renderer> {
+    ) -> Container<'a, ImageStepMessage, Renderer> {
         let curr_idx_text = text(format!("Current Item: {}", curr_idx + 1)).size(20);
         let len_images_text = text(format!("Total Images: {}", len_images)).size(20);
         let folder_path_text = text(format!("Folder Path: {}", folder_path)).size(20);
@@ -297,18 +298,18 @@ impl<'a> Step {
         .width(Length::Fill)
     }
 
-    pub fn images(obj: &Steps) -> Column<'a, StepMessage, Renderer> {
-        let export_btn = button(text("Export").size(20)).on_press(StepMessage::Export());
+    pub fn images(obj: &Steps) -> Column<'a, ImageStepMessage, Renderer> {
+        let export_btn = button(text("Export").size(20)).on_press(ImageStepMessage::Export());
         let correct_btn =
-            button(text("Mark as Correct").size(20)).on_press(StepMessage::MarkAsCorrect());
+            button(text("Mark as Correct").size(20)).on_press(ImageStepMessage::MarkAsCorrect());
         let incorrect_btn =
-            button(text("Mark as Incorrect").size(20)).on_press(StepMessage::MarkAsIncorrect());
+            button(text("Mark as Incorrect").size(20)).on_press(ImageStepMessage::MarkAsIncorrect());
         let reset_btn =
-            button(text("Reset Selection").size(20)).on_press(StepMessage::ResetSelection());
-        let mut previous_btn: Option<Button<StepMessage, Renderer>> =
-            Some(button(text("Previous Image").size(20)).on_press(StepMessage::Previous()));
-        let mut next_btn: Option<Button<StepMessage, Renderer>> =
-            Some(button(text("Next Image").size(20)).on_press(StepMessage::Next()));
+            button(text("Reset Selection").size(20)).on_press(ImageStepMessage::ResetSelection());
+        let mut previous_btn: Option<Button<ImageStepMessage, Renderer>> =
+            Some(button(text("Previous Image").size(20)).on_press(ImageStepMessage::Previous()));
+        let mut next_btn: Option<Button<ImageStepMessage, Renderer>> =
+            Some(button(text("Next Image").size(20)).on_press(ImageStepMessage::Next()));
 
         match obj.is_next_image_available() {
             true => {
@@ -332,7 +333,7 @@ impl<'a> Step {
             let mut input = text_input(
                 "(Optional) Type your reason here...",
                 &obj.new_message,
-                StepMessage::CommentType,
+                ImageStepMessage::CommentType,
             )
             .padding(10);
 
@@ -344,8 +345,8 @@ impl<'a> Step {
             .padding([0, 20]);
 
             if let Some(valid_msg) = msg_check(obj.new_message.clone()) {
-                input = input.on_submit(StepMessage::CommentAdded(valid_msg.clone()));
-                button = button.on_press(StepMessage::CommentAdded(valid_msg));
+                input = input.on_submit(ImageStepMessage::CommentAdded(valid_msg.clone()));
+                button = button.on_press(ImageStepMessage::CommentAdded(valid_msg));
             }
 
             row![input, button]
@@ -446,7 +447,7 @@ impl<'a> Step {
         .center_y()]
     }
 
-    pub fn end() -> Column<'a, StepMessage, Renderer> {
+    pub fn end() -> Column<'a, ImageStepMessage, Renderer> {
         column![container(Self::container_("End!")).center_x().center_y()]
     }
 
@@ -480,6 +481,7 @@ pub fn load_json_and_update(path_str: &str, json_obj: &AnnotatedStore) {
     if std::path::Path::new(path_str).exists() {
         let content = std::fs::read_to_string(path_str).ok().unwrap();
         let mut v: AnnotatedStore = serde_json::from_str(&content).ok().unwrap();
+        println!("Prop: {:?}", json_obj.image_to_properties_map);
         for (folder_path, val) in json_obj.image_to_properties_map.iter() {
             v.image_to_properties_map
                 .insert(folder_path.to_string(), val.to_vec());

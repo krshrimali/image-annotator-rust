@@ -6,7 +6,7 @@ use iced::{
     Element, Length, Renderer, Sandbox,
 };
 
-use self::render_image::{init_json_obj, AnnotatedStore, Message, Step, StepMessage};
+use self::render_image::{init_json_obj, AnnotatedStore, Message, Step, ImageStepMessage};
 
 #[path = "render_image.rs"]
 mod render_image;
@@ -111,7 +111,7 @@ impl Sandbox for FolderVisualizer {
         }
 
         let content: Element<_> = column![container(
-            column![element_view.map(Message::StepMessage), controls,]
+            column![element_view.map(Message::ImageStepMessage), controls,]
                 .spacing(20)
                 .padding(20)
                 .align_items(iced::Alignment::Fill),
@@ -130,7 +130,7 @@ impl Sandbox for FolderVisualizer {
             Message::NextPressed => {
                 self.steps.advance();
             }
-            Message::StepMessage(step_msg) => {
+            Message::ImageStepMessage(step_msg) => {
                 self.steps.update(step_msg);
             }
         }
@@ -160,7 +160,7 @@ impl Steps {
         }
     }
 
-    pub fn update(&mut self, msg: StepMessage) {
+    pub fn update(&mut self, msg: ImageStepMessage) {
         let (
             new_idx,
             new_image_prop_map,
@@ -201,16 +201,16 @@ impl Steps {
                 .unwrap()
                 .get_mut(self.curr_idx)
                 .unwrap()
-                .comments = Some(new_comment.clone().unwrap_or_default());
+                .comments = new_comment.clone();
         }
         if let Some(msg_valid) = new_comment {
             self.new_message = msg_valid;
         } else {
-            self.new_message.clear();
+            self.new_message = String::from("");
         }
     }
 
-    pub fn view(&self) -> Element<StepMessage> {
+    pub fn view(&self) -> Element<ImageStepMessage> {
         self.steps[self.current].view(self)
     }
 
@@ -223,11 +223,6 @@ impl Steps {
     pub fn go_back(&mut self) {
         if self.has_previous() {
             self.current -= 1;
-            if self.current == 0 {
-                unsafe {
-                    render_image::FOLDER_FOUND = false;
-                }
-            }
         }
     }
 
