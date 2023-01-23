@@ -1,5 +1,6 @@
 use std::{collections::HashMap, path::PathBuf};
 
+use once_cell::sync::Lazy;
 use rfd::FileDialog;
 
 use iced::{
@@ -30,6 +31,17 @@ pub enum Message {
 }
 
 pub static mut FOLDER_FOUND: bool = false;
+// TODO: This is kinda unsafe, curious to know when home_dir() will return None
+pub static mut OUTPUT_PATH: Lazy<String> = Lazy::new(|| {
+    home::home_dir()
+        .unwrap()
+        .as_path()
+        .join("output.json")
+        .as_path()
+        .to_str()
+        .unwrap()
+        .to_string()
+});
 
 #[derive(Clone, Debug)]
 pub enum ImageStepMessage {
@@ -302,8 +314,8 @@ impl<'a> Step {
         let export_btn = button(text("Export").size(20)).on_press(ImageStepMessage::Export());
         let correct_btn =
             button(text("Mark as Correct").size(20)).on_press(ImageStepMessage::MarkAsCorrect());
-        let incorrect_btn =
-            button(text("Mark as Incorrect").size(20)).on_press(ImageStepMessage::MarkAsIncorrect());
+        let incorrect_btn = button(text("Mark as Incorrect").size(20))
+            .on_press(ImageStepMessage::MarkAsIncorrect());
         let reset_btn =
             button(text("Reset Selection").size(20)).on_press(ImageStepMessage::ResetSelection());
         let mut previous_btn: Option<Button<ImageStepMessage, Renderer>> =
@@ -369,7 +381,11 @@ impl<'a> Step {
                 },
             )));
 
-        let file_name = obj.all_images[obj.curr_idx].file_name().unwrap().to_str().unwrap();
+        let file_name = obj.all_images[obj.curr_idx]
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap();
         let info_row = Self::create_info(
             &obj.curr_idx,
             &obj.all_images.len(),
@@ -477,7 +493,7 @@ pub fn fetch_image(all_images: Vec<PathBuf>, curr_idx: &usize) -> Result<Handle,
     }
 }
 
-pub fn load_json_and_update(path_str: &str, json_obj: &AnnotatedStore) {
+pub fn load_json_and_update(path_str: &String, json_obj: &AnnotatedStore) {
     if std::path::Path::new(path_str).exists() {
         let content = std::fs::read_to_string(path_str).ok().unwrap();
         let mut v: AnnotatedStore = serde_json::from_str(&content).ok().unwrap();
@@ -487,7 +503,7 @@ pub fn load_json_and_update(path_str: &str, json_obj: &AnnotatedStore) {
                 .insert(folder_path.to_string(), val.to_vec());
         }
         let res = std::fs::write(
-            "output.json",
+            path_str,
             serde_json::to_string_pretty(&v).unwrap_or_default(),
         );
         match res {
@@ -496,7 +512,7 @@ pub fn load_json_and_update(path_str: &str, json_obj: &AnnotatedStore) {
         }
     } else {
         let res = std::fs::write(
-            "output.json",
+            path_str,
             serde_json::to_string_pretty(json_obj).unwrap_or_default(),
         );
         match res {
@@ -507,7 +523,9 @@ pub fn load_json_and_update(path_str: &str, json_obj: &AnnotatedStore) {
 }
 
 fn write_json(json_obj: &AnnotatedStore) {
-    load_json_and_update("output.json", json_obj);
+    unsafe {
+        load_json_and_update(&OUTPUT_PATH, json_obj);
+    }
 }
 
 #[derive(Deserialize, Serialize, Default, Debug, Clone)]

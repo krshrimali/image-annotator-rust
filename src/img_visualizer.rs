@@ -6,7 +6,7 @@ use iced::{
     Element, Length, Renderer, Sandbox,
 };
 
-use self::render_image::{init_json_obj, AnnotatedStore, Message, Step, ImageStepMessage};
+use self::render_image::{init_json_obj, AnnotatedStore, ImageStepMessage, Message, Step};
 
 #[path = "render_image.rs"]
 mod render_image;
