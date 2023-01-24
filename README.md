@@ -33,7 +33,7 @@
 
 **Invalid file**
 
-<img width="1022" alt="image" src="https://user-images.githubusercontent.com/19997320/212479642-421eb899-8b52-4ad1-aaec-8d669d7fa8fa.png">
+![image](https://user-images.githubusercontent.com/19997320/214363493-c1399758-156d-402c-982b-acdf6773a514.png)
 
 - In case a file is invalid, or the image couldn't be loaded, a message will appear and a user can see the file path in the info below to the text.
 
