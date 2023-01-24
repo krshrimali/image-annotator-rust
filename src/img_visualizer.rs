@@ -110,16 +110,22 @@ impl Sandbox for FolderVisualizer {
             }
         }
 
-        let content: Element<_> = column![container(
-            column![element_view.map(Message::ImageStepMessage), controls,]
-                .spacing(20)
-                .padding(20)
-                .align_items(iced::Alignment::Fill),
-        )]
+        let content: Element<_> = column![
+            container(
+                column![element_view.map(Message::ImageStepMessage)]
+                    .spacing(20)
+                    .padding(20)
+            ),
+            container(controls.spacing(20).padding(20)),
+        ]
         .into();
 
-        let scrollable = scrollable(container(content).width(Length::Fill).center_x());
-        container(scrollable).height(Length::Fill).center_y().into()
+        container(scrollable(
+            container(content).width(Length::Fill).center_x(),
+        ))
+        .height(Length::Fill)
+        .center_y()
+        .into()
     }
 
     fn update(&mut self, message: Self::Message) {

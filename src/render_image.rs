@@ -5,14 +5,13 @@ use rfd::FileDialog;
 
 use iced::{
     theme,
-    widget::{button, container, horizontal_space, row, text, text_input, Container},
+    widget::{
+        button, container, horizontal_space, image, row, text, text_input, Button, Column,
+        Container,
+    },
     Element, Length, Renderer,
 };
-use iced_native::{
-    column,
-    image::Handle,
-    widget::{image, Button, Column},
-};
+use iced_native::{column, image::Handle};
 use serde::{Deserialize, Serialize};
 
 use super::{get_all_images, Steps};
@@ -366,20 +365,11 @@ impl<'a> Step {
                 .align_items(iced::Alignment::Fill)
         };
         let img_handle = fetch_image(obj.all_images.clone(), &obj.curr_idx);
-        let mut img_row = match img_handle {
-            Ok(valid_img_handle) => container(row![image::viewer(valid_img_handle)]),
-            Err(e) => {
-                container(row![text(format!("Not a valid image, sorry! Error: {}", e))].padding(20))
-            }
-        };
 
-        img_row = img_row
-            .width(Length::Fill)
-            .style(iced::theme::Container::Custom(Box::new(
-                ContainerCustomStyle {
-                    bg_color: iced::Background::Color(iced::Color::WHITE),
-                },
-            )));
+        let img_viewer = match img_handle {
+            Ok(valid_img_handle) => Some(image::viewer(valid_img_handle)),
+            Err(_) => None,
+        };
 
         let file_name = obj.all_images[obj.curr_idx]
             .file_name()
@@ -454,13 +444,37 @@ impl<'a> Step {
             ),
         };
 
-        column![container(column![
-            container(img_row),
-            image_option_buttons,
-            info_row,
-            next_prev_buttons_row.spacing(20).padding(10)
-        ])
-        .center_y()]
+        match img_viewer {
+            Some(valid_img_viewer) => {
+                column![
+                    container(row![
+                        horizontal_space(Length::Fill),
+                        valid_img_viewer,
+                        horizontal_space(Length::Fill)
+                    ]),
+                    image_option_buttons,
+                    info_row,
+                    next_prev_buttons_row.spacing(20).padding(10)
+                ]
+            }
+            None => column![
+                container(row![
+                    horizontal_space(Length::Fill),
+                    text("Invalid file, sorry!"),
+                    horizontal_space(Length::Fill)
+                ])
+                .style(iced::theme::Container::Custom(Box::new(
+                    ContainerCustomStyle {
+                        bg_color: iced::Background::Color(iced::Color::WHITE),
+                    },
+                )))
+                .height(Length::Units(400)) // TOOD: Instead of hard-coding this year, find current windows' height - and make this 40% of that height.
+                .center_y(),
+                image_option_buttons,
+                info_row,
+                next_prev_buttons_row.spacing(20).padding(10)
+            ],
+        }
     }
 
     pub fn end() -> Column<'a, ImageStepMessage, Renderer> {
