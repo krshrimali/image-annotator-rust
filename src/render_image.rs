@@ -6,7 +6,7 @@ use rfd::FileDialog;
 use iced::{
     theme,
     widget::{
-        button, container, horizontal_space, image, row, text, text_input, Button, Column,
+        button, container, horizontal_space, image, radio, row, text, text_input, Button, Column,
         Container,
     },
     Element, Length, Renderer,
@@ -16,10 +16,11 @@ use serde::{Deserialize, Serialize};
 
 use super::{get_all_images, Steps};
 
-#[derive(PartialEq, Clone, Eq, Copy)]
+#[derive(PartialEq, Clone, Eq, Copy, Debug)]
 pub enum ThemeType {
     Light,
     Dark,
+    Custom,
 }
 
 #[derive(Clone, Debug)]
@@ -27,6 +28,7 @@ pub enum Message {
     BackPressed,
     NextPressed,
     ImageStepMessage(ImageStepMessage),
+    ThemeChanged(ThemeType),
 }
 
 pub static mut FOLDER_FOUND: bool = false;
@@ -53,6 +55,7 @@ pub enum ImageStepMessage {
     ChooseFolderPath(),
     CommentAdded(String),
     CommentType(String),
+    ThemeChanged(ThemeType),
 }
 
 #[derive(Clone, Debug)]
@@ -63,21 +66,64 @@ pub enum Step {
 }
 
 struct ContainerCustomStyle {
+    curr_theme: theme::Theme,
     bg_color: iced::Background,
 }
 
-impl container::StyleSheet for ContainerCustomStyle {
-    type Style = iced::theme::Theme;
+// impl container::StyleSheet for ContainerCustomStyle {
+//     type Style = iced::theme::Theme;
 
+//     fn appearance(&self, _: &iced::Theme) -> container::Appearance {
+//         // TODO: Consider adding an option for theme here...
+//         // Also might consider bg as transparent instead...
+//         container::Appearance {
+//             border_radius: 2.0,
+//             border_width: 2.0,
+//             border_color: iced::Color::BLACK,
+//             background: Some(self.bg_color),
+//             ..Default::default()
+//         }
+//     }
+// }
+
+const DARK_BACKGROUND: Option<iced_core::Background> =
+    Some(iced_core::Background::Color(iced::Color {
+        r: 255.0,
+        g: 255.0,
+        b: 255.0,
+        a: 0.7,
+    }));
+const LIGHT_BACKGROUND: Option<iced_core::Background> =
+    Some(iced_core::Background::Color(iced::Color {
+        r: 0.0,
+        g: 0.0,
+        b: 0.0,
+        a: 0.9,
+    }));
+
+impl container::StyleSheet for ContainerCustomStyle {
+    type Style = theme::Theme;
     fn appearance(&self, _: &iced::Theme) -> container::Appearance {
-        // TODO: Consider adding an option for theme here...
-        // Also might consider bg as transparent instead...
+        let (text_color, bg) = match &self.curr_theme {
+            iced::Theme::Light => (
+                iced::Color::BLACK,
+                Some(iced_core::Background::Color(iced::Color::TRANSPARENT)),
+            ),
+            iced::Theme::Dark => (
+                iced::Color::WHITE,
+                Some(iced_core::Background::Color(iced::Color::TRANSPARENT)),
+            ),
+            iced::Theme::Custom(_) => (
+                iced::Color::BLACK,
+                Some(iced_core::Background::Color(iced::Color::TRANSPARENT)),
+            ),
+        };
         container::Appearance {
+            text_color: Some(text_color),
+            background: bg,
             border_radius: 2.0,
             border_width: 2.0,
             border_color: iced::Color::BLACK,
-            background: Some(self.bg_color),
-            ..Default::default()
         }
     }
 }
@@ -92,6 +138,7 @@ impl<'a> Step {
         old_msg: String,
         old_incorrect_btn_clicked: bool,
         correct_items: &mut [Option<bool>],
+        theme: &theme::Theme,
     ) -> (
         usize,                            // new idx
         HashMap<String, Vec<Properties>>, // new prop map
@@ -116,6 +163,7 @@ impl<'a> Step {
         let mut new_steps_obj = Steps {
             incorrect_btn_clicked: old_incorrect_btn_clicked,
             new_message: old_msg,
+            theme: theme.clone(),
             ..Default::default()
         };
 
@@ -214,6 +262,21 @@ impl<'a> Step {
                     }
                 }
             }
+            ImageStepMessage::ThemeChanged(theme) => {
+                let new_theme = match theme {
+                    ThemeType::Dark => iced::Theme::Dark,
+                    ThemeType::Light => iced::Theme::Light,
+                    ThemeType::Custom => iced::Theme::custom(theme::Palette {
+                        background: iced::Color::from_rgb(1.0, 0.9, 1.0),
+                        text: iced::Color::BLACK,
+                        primary: iced::Color::from_rgb(0.5, 0.5, 0.0),
+                        success: iced::Color::from_rgb(0.0, 1.0, 0.0),
+                        danger: iced::Color::from_rgb(1.0, 0.0, 0.0),
+                    }),
+                };
+                new_steps_obj.theme = new_theme;
+                new_steps_obj.theme_changed = true;
+            }
         };
 
         (
@@ -236,8 +299,8 @@ impl<'a> Step {
 
     pub fn view(&self, obj: &Steps) -> Element<ImageStepMessage> {
         match self {
-            Step::WelcomeWithFolderChoose => Self::welcome().into(),
-            Step::Images => Self::images(obj).into(),
+            Step::WelcomeWithFolderChoose => Self::welcome(obj).into(),
+            Step::Images => Self::images(obj, &obj.theme).into(),
             Step::End => Self::end().into(),
         }
     }
@@ -246,18 +309,52 @@ impl<'a> Step {
         column![text(title).size(50)].spacing(20)
     }
 
-    pub fn welcome() -> Column<'a, ImageStepMessage, Renderer> {
+    pub fn welcome(obj: &Steps) -> Column<'a, ImageStepMessage, Renderer> {
+        let choose_theme = [ThemeType::Dark, ThemeType::Light, ThemeType::Custom]
+            .iter()
+            .fold(
+                row![text("Choose a theme:")].spacing(10),
+                |column: iced_native::widget::row::Row<'_, ImageStepMessage, Renderer>, theme| {
+                    column.push(radio(
+                        format!("{:?}", theme),
+                        *theme,
+                        Some(match obj.theme {
+                            iced::Theme::Dark => ThemeType::Dark,
+                            iced::Theme::Light => ThemeType::Light,
+                            iced::Theme::Custom { .. } => ThemeType::Custom,
+                        }),
+                        ImageStepMessage::ThemeChanged,
+                    ))
+                },
+            );
+
+        let choose_theme_content = column![choose_theme]
+            .spacing(20)
+            .padding(20)
+            .max_width(600)
+            .width(Length::Fill);
+
         unsafe {
             if FOLDER_FOUND {
                 let file_choose_button = button(text("Select folder"))
                     .on_press(ImageStepMessage::ChooseFolderPath())
                     .style(theme::Button::Secondary);
-                column![container(row![file_choose_button])]
+                column![
+                    container(row![choose_theme_content
+                        .width(Length::Fill)
+                        .align_items(iced::Alignment::Start)]),
+                    container(row![file_choose_button])
+                ]
             } else {
                 let file_choose_button = button(text("Select folder"))
                     .on_press(ImageStepMessage::ChooseFolderPath())
                     .style(theme::Button::Primary);
-                column![container(row![file_choose_button])]
+                column![
+                    container(row![choose_theme_content
+                        .width(Length::Fill)
+                        .align_items(iced::Alignment::Start)]),
+                    container(row![file_choose_button])
+                ]
             }
         }
     }
@@ -268,6 +365,7 @@ impl<'a> Step {
         folder_path: &str,
         correct_items: &[Option<bool>],
         image_file_name: String,
+        theme: &theme::Theme,
     ) -> Container<'a, ImageStepMessage, Renderer> {
         let curr_idx_text = text(format!("Current Item: {}", curr_idx + 1)).size(20);
         let len_images_text = text(format!("Total Images: {}", len_images)).size(20);
@@ -303,13 +401,37 @@ impl<'a> Step {
         ])
         .style(iced::theme::Container::Custom(Box::new(
             ContainerCustomStyle {
+                curr_theme: theme.clone(),
                 bg_color: iced::Background::Color(iced::Color::WHITE),
             },
         )))
         .width(Length::Fill)
     }
 
-    pub fn images(obj: &Steps) -> Column<'a, ImageStepMessage, Renderer> {
+    pub fn images(obj: &Steps, theme: &theme::Theme) -> Column<'a, ImageStepMessage, Renderer> {
+        let choose_theme = [ThemeType::Dark, ThemeType::Light, ThemeType::Custom]
+            .iter()
+            .fold(
+                row![text("Choose a theme:")].spacing(10),
+                |column: iced_native::widget::row::Row<'_, ImageStepMessage, Renderer>, theme| {
+                    column.push(radio(
+                        format!("{:?}", theme),
+                        *theme,
+                        Some(match obj.theme {
+                            iced::Theme::Dark => ThemeType::Dark,
+                            iced::Theme::Light => ThemeType::Light,
+                            iced::Theme::Custom { .. } => ThemeType::Custom,
+                        }),
+                        ImageStepMessage::ThemeChanged,
+                    ))
+                },
+            );
+
+        let choose_theme_content = column![choose_theme]
+            .spacing(20)
+            .padding(20)
+            .max_width(600)
+            .width(Length::Fill);
         let export_btn = button(text("Export").size(20)).on_press(ImageStepMessage::Export());
         let correct_btn =
             button(text("Mark as Correct").size(20)).on_press(ImageStepMessage::MarkAsCorrect());
@@ -366,9 +488,13 @@ impl<'a> Step {
         };
         let img_handle = fetch_image(obj.all_images.clone(), &obj.curr_idx);
 
+        let mut error_msg: Option<String> = None;
         let img_viewer = match img_handle {
             Ok(valid_img_handle) => Some(image::viewer(valid_img_handle)),
-            Err(_) => None,
+            Err(e) => {
+                error_msg = Some(e.to_string());
+                None
+            }
         };
 
         let file_name = obj.all_images[obj.curr_idx]
@@ -382,6 +508,7 @@ impl<'a> Step {
             &obj.folder_path,
             &obj.correct_items,
             file_name.to_string(),
+            theme,
         );
 
         // container(
@@ -447,6 +574,9 @@ impl<'a> Step {
         match img_viewer {
             Some(valid_img_viewer) => {
                 column![
+                    container(row![choose_theme_content
+                        .width(Length::Fill)
+                        .align_items(iced::Alignment::Start)]),
                     container(row![
                         horizontal_space(Length::Fill),
                         valid_img_viewer,
@@ -458,13 +588,17 @@ impl<'a> Step {
                 ]
             }
             None => column![
+                container(row![choose_theme_content
+                    .width(Length::Fill)
+                    .align_items(iced::Alignment::Start)]),
                 container(row![
                     horizontal_space(Length::Fill),
-                    text("Invalid file, sorry!"),
+                    text(error_msg.unwrap_or_default()),
                     horizontal_space(Length::Fill)
                 ])
                 .style(iced::theme::Container::Custom(Box::new(
                     ContainerCustomStyle {
+                        curr_theme: theme.clone(),
                         bg_color: iced::Background::Color(iced::Color::WHITE),
                     },
                 )))
@@ -488,6 +622,10 @@ impl<'a> Step {
             Step::End => "End".to_string(),
         }
     }
+
+    // fn theme(&self) -> iced::Theme {
+    //     self.theme.clone()
+    // }
 }
 
 pub fn fetch_image(all_images: Vec<PathBuf>, curr_idx: &usize) -> Result<Handle, std::io::Error> {
@@ -500,7 +638,7 @@ pub fn fetch_image(all_images: Vec<PathBuf>, curr_idx: &usize) -> Result<Handle,
             Some(_) => Ok(Handle::from_path(path)),
             None => Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                "Invalid file!!",
+                "Invalid file, please check if it is a valid image file!",
             )),
         },
         Err(e) => Err(e),
