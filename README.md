@@ -16,6 +16,12 @@
 
 ## Description and Demo
 
+**Theme Switching**
+
+The app saves you some eye strain with dark and light theme switching option.
+
+![Screenshot from 2023-01-29 12-54-20](https://user-images.githubusercontent.com/19997320/215311668-bc935e22-fcc6-4882-bf7e-21d48b6173d0.png)
+
 **Welcome page - select your folder**
 
 <img width="1022" alt="image" src="https://user-images.githubusercontent.com/19997320/212478003-65eeba74-f894-4609-8fcc-b95ec88b8db7.png">
@@ -33,13 +39,13 @@
 
 **Invalid file**
 
-![image](https://user-images.githubusercontent.com/19997320/214363493-c1399758-156d-402c-982b-acdf6773a514.png)
+![invalid_file](https://user-images.githubusercontent.com/19997320/215312196-bdc46516-2dd8-4fb2-8b00-416e9fbd47ed.png)
 
 - In case a file is invalid, or the image couldn't be loaded, a message will appear and a user can see the file path in the info below to the text.
 
 **Add comments (optional)**
 
-<img width="1022" alt="image" src="https://user-images.githubusercontent.com/19997320/212478086-fd284f0e-5bb0-44ef-84a0-058b55ee8671.png">
+![output_annotation](https://user-images.githubusercontent.com/19997320/215312198-0a089cc0-1a18-4727-b433-a9ad0a9b91c3.jpeg)
 
 ## Output
 

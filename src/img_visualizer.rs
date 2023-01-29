@@ -6,7 +6,9 @@ use iced::{
     Element, Length, Renderer, Sandbox,
 };
 
-use self::render_image::{init_json_obj, AnnotatedStore, ImageStepMessage, Message, Step};
+use self::render_image::{
+    init_json_obj, AnnotatedStore, ImageStepMessage, Message, Step, ThemeType,
+};
 
 #[path = "render_image.rs"]
 mod render_image;
@@ -24,11 +26,14 @@ pub struct Steps {
     btn_status: bool,
     new_message: String,
     incorrect_btn_clicked: bool,
+    theme: iced::Theme,
+    theme_changed: bool,
 }
 
 #[derive(Default)]
 pub struct FolderVisualizer {
     steps: Steps,
+    theme: iced::Theme,
 }
 
 fn get_all_images(folder_path: &String) -> Vec<PathBuf> {
@@ -74,7 +79,11 @@ impl Sandbox for FolderVisualizer {
         let json_obj: AnnotatedStore = init_json_obj(folder_path.clone(), all_images.clone());
         let mut steps_obj = Steps::new(folder_path, 0, all_images.clone(), vec![], json_obj);
         steps_obj.correct_items = vec![None; all_images.len()];
-        FolderVisualizer { steps: steps_obj }
+        steps_obj.theme = iced::Theme::Dark;
+        FolderVisualizer {
+            steps: steps_obj,
+            theme: iced::Theme::Dark,
+        }
     }
 
     fn title(&self) -> String {
@@ -130,6 +139,19 @@ impl Sandbox for FolderVisualizer {
 
     fn update(&mut self, message: Self::Message) {
         match message {
+            Message::ThemeChanged(theme) => {
+                self.theme = match theme {
+                    ThemeType::Dark => iced::Theme::Dark,
+                    ThemeType::Light => iced::Theme::Light,
+                    ThemeType::Custom => iced::Theme::custom(theme::Palette {
+                        background: iced::Color::from_rgb(1.0, 0.9, 1.0),
+                        text: iced::Color::BLACK,
+                        primary: iced::Color::from_rgb(0.5, 0.5, 0.0),
+                        success: iced::Color::from_rgb(0.0, 1.0, 0.0),
+                        danger: iced::Color::from_rgb(1.0, 0.0, 0.0),
+                    }),
+                }
+            }
             Message::BackPressed => {
                 self.steps.go_back();
             }
@@ -137,9 +159,16 @@ impl Sandbox for FolderVisualizer {
                 self.steps.advance();
             }
             Message::ImageStepMessage(step_msg) => {
-                self.steps.update(step_msg);
+                let new_theme: Option<iced::Theme> = self.steps.update(step_msg);
+                if let Some(valid_theme) = new_theme {
+                    self.theme = valid_theme;
+                }
             }
         }
+    }
+
+    fn theme(&self) -> iced::Theme {
+        self.theme.clone()
     }
 }
 
@@ -163,10 +192,12 @@ impl Steps {
             btn_status: false,
             new_message: "".to_string(),
             incorrect_btn_clicked: false,
+            theme: iced::Theme::Dark,
+            theme_changed: false,
         }
     }
 
-    pub fn update(&mut self, msg: ImageStepMessage) {
+    pub fn update(&mut self, msg: ImageStepMessage) -> Option<iced::Theme> {
         let (
             new_idx,
             new_image_prop_map,
@@ -182,10 +213,13 @@ impl Steps {
             self.new_message.clone(),
             self.incorrect_btn_clicked,
             &mut self.correct_items,
+            &self.theme,
         );
 
         self.incorrect_btn_clicked = new_steps_obj.incorrect_btn_clicked;
-        if new_steps_obj.modified {
+        if new_steps_obj.theme_changed {
+            self.theme = new_steps_obj.theme;
+        } else if new_steps_obj.modified {
             self.curr_idx = new_steps_obj.curr_idx;
             self.correct_items = new_steps_obj.correct_items;
             self.folder_path = new_steps_obj.folder_path;
@@ -214,6 +248,8 @@ impl Steps {
         } else {
             self.new_message = String::from("");
         }
+
+        Some(self.theme.clone())
     }
 
     pub fn view(&self) -> Element<ImageStepMessage> {
