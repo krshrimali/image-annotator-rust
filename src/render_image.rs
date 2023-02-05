@@ -1,3 +1,4 @@
+use chrono::Local;
 use std::{collections::HashMap, path::PathBuf};
 
 use once_cell::sync::Lazy;
@@ -649,7 +650,7 @@ pub fn load_json_and_update(path_str: &String, json_obj: &AnnotatedStore) {
     if std::path::Path::new(path_str).exists() {
         let content = std::fs::read_to_string(path_str).ok().unwrap();
         let mut v: AnnotatedStore = serde_json::from_str(&content).ok().unwrap();
-        println!("Prop: {:?}", json_obj.image_to_properties_map);
+        // println!("Prop: {:?}", json_obj.image_to_properties_map);
         for (folder_path, val) in json_obj.image_to_properties_map.iter() {
             v.image_to_properties_map
                 .insert(folder_path.to_string(), val.to_vec());
@@ -686,6 +687,7 @@ pub struct Properties {
     pub image_path: String,
     pub annotation: Option<bool>,
     pub comments: Option<String>,
+    pub last_updated: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Default, Debug, Clone)]
@@ -703,7 +705,8 @@ pub fn init_json_obj(folder_path: String, all_paths: Vec<PathBuf>) -> AnnotatedS
             index: idx,
             image_path: path_str,
             annotation: selected_option,
-            comments: None, // TODO
+            comments: None,
+            last_updated: Some(Local::now().to_string()),
         };
         vec_maps.push(properties);
     }

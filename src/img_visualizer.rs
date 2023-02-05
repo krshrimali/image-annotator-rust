@@ -272,15 +272,6 @@ impl Steps {
         self.current > 0
     }
 
-    // NOTE: Following 2 functions are not used right now
-    pub fn enable_next_button(&mut self) {
-        self.btn_status = true;
-    }
-
-    pub fn disable_next_button(&mut self) {
-        self.btn_status = false;
-    }
-
     pub fn can_continue(&self) -> bool {
         self.current + 1 < self.steps.len() && self.steps[self.current].can_continue()
     }
