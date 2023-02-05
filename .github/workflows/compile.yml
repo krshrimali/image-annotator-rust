@@ -1,0 +1,25 @@
+name: Compile Binary (Release)
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install ATK
+        run: sudo apt -y update && sudo apt -y install librust-atk-sys-dev
+      - name: Install GTK
+        run: sudo apt -y update && sudo apt -y install libgtk-3-dev
+      - uses: actions/checkout@v2
+      - name: Build
+        run: cargo build --verbose
+      - name: Prepare Release
+        run: cargo build --release
