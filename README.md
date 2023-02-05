@@ -54,21 +54,28 @@ A sample output is given [here](https://github.com/krshrimali/image-annotator-ru
 ```json
 {
   "image_to_properties_map": {
-    "/Users/krshrimali/Documents/krshrimali/projects/image-annotator-rust-app/sample_folder": [
+    "/home/krshrimali/Documents/Projects/rust/image-annotator-rust-app/sample_folder": [
       {
         "index": 0,
-        "image_path": "/Users/krshrimali/Documents/krshrimali/projects/image-annotator-rust-app/sample_folder/sample.webp",
-        "annotation": true,
-        "comments": ""
+        "image_path": "/home/krshrimali/Documents/Projects/rust/image-annotator-rust-app/sample_folder/invalid_file.txt",
+        "annotation": null,
+        "comments": null,
+        "last_updated": "2023-02-05 12:53:28.343688759 +05:30"
       },
-    ],
-    "/Users/krshrimali/Documents/Photos": [
       {
-        "index": 0,
-        "image_path": "/Users/krshrimali/Documents/Photos/Kush.png",
-        "annotation": true,
-        "comments": ""
+        "index": 1,
+        "image_path": "/home/krshrimali/Documents/Projects/rust/image-annotator-rust-app/sample_folder/sample.webp",
+        "annotation": null,
+        "comments": null,
+        "last_updated": "2023-02-05 12:53:28.343921942 +05:30"
       },
+      {
+        "index": 2,
+        "image_path": "/home/krshrimali/Documents/Projects/rust/image-annotator-rust-app/sample_folder/nature-3082832__480.jpg",
+        "annotation": null,
+        "comments": null,
+        "last_updated": "2023-02-05 12:53:28.343935682 +05:30"
+      }
     ]
   }
 }
