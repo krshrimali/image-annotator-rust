@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use serde::de::{self, Visitor};
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Deserializer;
@@ -653,7 +653,7 @@ pub fn load_json_and_update(path_str: &String, json_obj: &AnnotatedStore) {
     if std::path::Path::new(path_str).exists() {
         let content = std::fs::read_to_string(path_str).ok().unwrap();
         let mut v: AnnotatedStore = serde_json::from_str(&content).ok().unwrap();
-        println!("Prop: {:?}", json_obj.image_to_properties_map);
+        // println!("Prop: {:?}", json_obj.image_to_properties_map);
         for (folder_path, val) in json_obj.image_to_properties_map.iter() {
             v.image_to_properties_map
                 .insert(folder_path.to_string(), val.to_vec());
@@ -684,107 +684,13 @@ fn write_json(json_obj: &AnnotatedStore) {
     }
 }
 
-pub struct CurTime {
-    time: DateTime<chrono::Local>,
-}
-
 #[derive(Deserialize, Serialize, Default, Debug, Clone)]
 pub struct Properties {
     pub index: usize,
     pub image_path: String,
     pub annotation: Option<bool>,
     pub comments: Option<String>,
-    pub last_updated: Option<CurTime>,
-}
-
-impl Default for CurTime {
-    fn default() -> Self {
-        let timezone_west = chrono::offset::FixedOffset::west_opt(7 * 60 * 60).unwrap();
-        let naivedatetime_west = chrono::NaiveDate::from_ymd_opt(2000, 1, 11)
-            .unwrap()
-            .and_hms_opt(10, 0, 0)
-            .unwrap();
-        let datetime_west =
-            DateTime::<chrono::offset::FixedOffset>::from_local(naivedatetime_west, timezone_west);
-        CurTime {
-            time: datetime_west.into(),
-        }
-    }
-}
-
-impl std::fmt::Debug for CurTime {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CurTime").field("time", &self.time).finish()
-    }
-}
-
-impl Serialize for CurTime {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("Time: ", 1)?;
-        state.serialize_field("time", "Check");
-        state.end()
-    }
-}
-
-impl Clone for CurTime {
-    fn clone(&self) -> Self {
-        CurTime { time: self.time }
-    }
-}
-
-struct String2TimeVisitor;
-
-impl<'de> Visitor<'de> for String2TimeVisitor {
-    type Value = CurTime;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("hmm")
-    }
-
-    fn visit_str<E>(self, _value: &str) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        let timezone_west = chrono::offset::FixedOffset::west_opt(7 * 60 * 60).unwrap();
-        let naivedatetime_west = chrono::NaiveDate::from_ymd_opt(2000, 1, 11)
-            .unwrap()
-            .and_hms_opt(10, 0, 0)
-            .unwrap();
-        let datetime_west =
-            DateTime::<chrono::offset::FixedOffset>::from_local(naivedatetime_west, timezone_west);
-        Ok(CurTime {
-            time: datetime_west.into(),
-        })
-    }
-
-    fn visit_string<E>(self, _value: String) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        let timezone_west = chrono::offset::FixedOffset::west_opt(7 * 60 * 60).unwrap();
-        let naivedatetime_west = chrono::NaiveDate::from_ymd_opt(2000, 1, 11)
-            .unwrap()
-            .and_hms_opt(10, 0, 0)
-            .unwrap();
-        let datetime_west =
-            DateTime::<chrono::offset::FixedOffset>::from_local(naivedatetime_west, timezone_west);
-        Ok(CurTime {
-            time: datetime_west.into(),
-        })
-    }
-}
-
-impl<'de> Deserialize<'de> for CurTime {
-    fn deserialize<D>(deserializer: D) -> Result<CurTime, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let dt = DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc);
-        deserializer.deserialize_string(String2TimeVisitor)
-    }
+    pub last_updated: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Default, Debug, Clone)]
@@ -802,8 +708,8 @@ pub fn init_json_obj(folder_path: String, all_paths: Vec<PathBuf>) -> AnnotatedS
             index: idx,
             image_path: path_str,
             annotation: selected_option,
-            comments: None, // TODO
-            last_updated: None,
+            comments: None,
+            last_updated: Some(Local::now().to_string()),
         };
         vec_maps.push(properties);
     }
