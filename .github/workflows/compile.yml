@@ -23,6 +23,8 @@ jobs:
         run: cargo build --verbose
       - name: Prepare Release
         run: cargo build --release
+      - name: Copy release to binaries
+        run: cp target/release/annotator-rust binaries/Linux/
 
   build-OSX:
     runs-on: macos-latest
@@ -35,6 +37,8 @@ jobs:
         run: cargo build --verbose
       - name: Prepare Release
         run: cargo build --release
+      - name: Copy release to binaries
+        run: cp target/release/annotator-rust binaries/OSX/
 
   build-Windows:
     runs-on: windows-latest
@@ -45,3 +49,5 @@ jobs:
         run: cargo build --verbose
       - name: Prepare Release
         run: cargo build --release
+      - name: Copy release to binaries
+        run: cp target/release/annotator-rust binaries/Windows/
