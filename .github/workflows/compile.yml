@@ -50,4 +50,4 @@ jobs:
       - name: Prepare Release
         run: cargo build --release
       - name: Copy release to binaries
-        run: cp target/release/annotator-rust binaries/Windows/
+        run: cp target/release/annotator-rust.exe binaries/Windows/
