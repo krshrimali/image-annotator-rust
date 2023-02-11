@@ -32,6 +32,9 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Update Linux Binary
+          commit_user_name: krshrimali
+          commit_user_email: kushashwaravishrimali@gmail.com
+          commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
 
   build-OSX:
     runs-on: macos-latest
@@ -53,6 +56,9 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Update OSX Binary
+          commit_user_name: krshrimali
+          commit_user_email: kushashwaravishrimali@gmail.com
+          commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
 
   build-Windows:
     runs-on: windows-latest
@@ -72,3 +78,6 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Update Windows Binary
+          commit_user_name: krshrimali
+          commit_user_email: kushashwaravishrimali@gmail.com
+          commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
