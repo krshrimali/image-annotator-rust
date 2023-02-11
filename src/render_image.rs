@@ -684,7 +684,7 @@ fn write_json(json_obj: &AnnotatedStore) {
     }
 }
 
-#[derive(Deserialize, Serialize, Default, Debug, Clone)]
+#[derive(Deserialize, Serialize, Default, Debug, Clone, Eq, PartialEq)]
 pub struct Properties {
     pub index: usize,
     pub image_path: String,
@@ -693,7 +693,7 @@ pub struct Properties {
     pub last_updated: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Default, Debug, Clone)]
+#[derive(Deserialize, Serialize, Default, Debug, Clone, Eq, PartialEq)]
 pub struct AnnotatedStore {
     pub image_to_properties_map: HashMap<String, Vec<Properties>>,
 }
@@ -784,5 +784,36 @@ mod test {
         let all_images = vec![path_buf];
         let result = fetch_image(all_images, &curr_idx);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_init_json_obj_valid() {
+        initialize();
+        let folder_path = "test".to_string();
+        let all_paths: Vec<PathBuf> = vec![PathBuf::from_str("test/sample.jpg").unwrap()];
+        let json_obj = init_json_obj(folder_path.clone(), all_paths);
+
+        // Checking everything other than timestamp, for now
+        let last_updated_time = json_obj
+            .image_to_properties_map
+            .get(&folder_path)
+            .unwrap()
+            .get(0)
+            .unwrap()
+            .last_updated
+            .as_ref();
+        let expected_json_obj = AnnotatedStore {
+            image_to_properties_map: HashMap::from([(
+                folder_path,
+                vec![Properties {
+                    index: 0,
+                    image_path: "test/sample.jpg".to_string(),
+                    annotation: None,
+                    comments: None,
+                    last_updated: last_updated_time.cloned(),
+                }],
+            )]),
+        };
+        assert_eq!(json_obj, expected_json_obj);
     }
 }
