@@ -1,5 +1,5 @@
 use chrono::Local;
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, panic, path::PathBuf};
 
 use once_cell::sync::Lazy;
 use rfd::FileDialog;
@@ -631,8 +631,11 @@ impl<'a> Step {
 
 pub fn fetch_image(all_images: Vec<PathBuf>, curr_idx: &usize) -> Result<Handle, std::io::Error> {
     // TODO: Set a default image to show that we are waiting for an image...// folder is empty
-    // TODO: Handle cases when the curr_idx is out of bound/negative
-    let path: PathBuf = all_images.get(*curr_idx).unwrap().to_owned();
+    let formatted_string = format!("Invalid index: {}", curr_idx);
+    let path: PathBuf = all_images
+        .get(*curr_idx)
+        .unwrap_or_else(|| panic!("{}", formatted_string.to_string()))
+        .to_owned();
     let img_validation_result = imghdr::from_file(path.clone());
     match img_validation_result {
         Ok(if_none) => match if_none {
@@ -724,4 +727,62 @@ pub fn msg_check(msg: String) -> Option<String> {
     // } else {
     Some(msg)
     // }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::path::PathBuf;
+    use std::str::FromStr;
+    use std::sync::Once;
+
+    extern crate image;
+    use image::{ImageBuffer, Rgb};
+
+    static INIT: Once = Once::new();
+
+    pub fn initialize() {
+        INIT.call_once(|| {
+            // create sample test image
+            let _ = std::fs::create_dir("test");
+            // Just creating a sample image
+            let image = ImageBuffer::<Rgb<u8>, Vec<u8>>::new(10, 10);
+            image.save("test/sample.jpg").unwrap();
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid index")]
+    fn test_fetch_image_invalid_curr_idx() {
+        initialize();
+        let curr_idx: i32 = -1;
+        let path_buf = PathBuf::from_str("test/sample.jpg").unwrap();
+        let all_images = vec![path_buf];
+        let _ = fetch_image(all_images, &(curr_idx as usize));
+    }
+
+    #[test]
+    fn test_fetch_image_valid_curr_idx_invalid_image() {
+        initialize();
+        let curr_idx: usize = 0;
+        let path_buf = PathBuf::from_str("test/invalid_sample.jpg").unwrap();
+        let all_images = vec![path_buf];
+        let result = fetch_image(all_images, &curr_idx);
+        assert!(result.is_err());
+        assert!(result
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("No such file or directory"));
+    }
+
+    #[test]
+    fn test_fetch_image_valid_curr_idx_valid_image() {
+        initialize();
+        let curr_idx: usize = 0;
+        let path_buf = PathBuf::from_str("test/sample.jpg").unwrap();
+        let all_images = vec![path_buf];
+        let result = fetch_image(all_images, &curr_idx);
+        assert!(result.is_ok());
+    }
 }
