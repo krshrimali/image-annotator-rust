@@ -59,6 +59,7 @@ jobs:
           commit_user_name: krshrimali
           commit_user_email: kushashwaravishrimali@gmail.com
           commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
+          push_options: '--force'
 
   build-Windows:
     runs-on: windows-latest
@@ -81,3 +82,4 @@ jobs:
           commit_user_name: krshrimali
           commit_user_email: kushashwaravishrimali@gmail.com
           commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
+          push_options: '--force'
