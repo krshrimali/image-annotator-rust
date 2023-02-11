@@ -26,7 +26,7 @@ jobs:
       - name: Prepare Release
         run: cargo build --release
       - name: Copy release to binaries
-        run: cp target/release/annotator-rust binaries/Linux/
+        run: cp target/release/annotator-rust binaries/Linux/image-annotator-rust && ls binaries/Linux/
 
   build-OSX:
     runs-on: macos-latest
@@ -42,7 +42,7 @@ jobs:
       - name: Prepare Release
         run: cargo build --release
       - name: Copy release to binaries
-        run: cp target/release/annotator-rust binaries/OSX/
+        run: cp target/release/annotator-rust binaries/OSX/image-annotator-rust && ls binaries/OSX/
 
   build-Windows:
     runs-on: windows-latest
@@ -56,4 +56,4 @@ jobs:
       - name: Prepare Release
         run: cargo build --release
       - name: Copy release to binaries
-        run: cp target/release/annotator-rust.exe binaries/Windows/
+        run: cp target/release/annotator-rust.exe binaries/Windows/image-annotator-rust.exe && ls binaries/Windows/
