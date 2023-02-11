@@ -71,37 +71,6 @@ struct ContainerCustomStyle {
     bg_color: iced::Background,
 }
 
-// impl container::StyleSheet for ContainerCustomStyle {
-//     type Style = iced::theme::Theme;
-
-//     fn appearance(&self, _: &iced::Theme) -> container::Appearance {
-//         // TODO: Consider adding an option for theme here...
-//         // Also might consider bg as transparent instead...
-//         container::Appearance {
-//             border_radius: 2.0,
-//             border_width: 2.0,
-//             border_color: iced::Color::BLACK,
-//             background: Some(self.bg_color),
-//             ..Default::default()
-//         }
-//     }
-// }
-
-const DARK_BACKGROUND: Option<iced_core::Background> =
-    Some(iced_core::Background::Color(iced::Color {
-        r: 255.0,
-        g: 255.0,
-        b: 255.0,
-        a: 0.7,
-    }));
-const LIGHT_BACKGROUND: Option<iced_core::Background> =
-    Some(iced_core::Background::Color(iced::Color {
-        r: 0.0,
-        g: 0.0,
-        b: 0.0,
-        a: 0.9,
-    }));
-
 impl container::StyleSheet for ContainerCustomStyle {
     type Style = theme::Theme;
     fn appearance(&self, _: &iced::Theme) -> container::Appearance {
