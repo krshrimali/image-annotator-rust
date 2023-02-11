@@ -35,6 +35,7 @@ jobs:
           commit_user_name: krshrimali
           commit_user_email: kushashwaravishrimali@gmail.com
           commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
+          push_options: '--force'
 
   build-OSX:
     runs-on: macos-latest
