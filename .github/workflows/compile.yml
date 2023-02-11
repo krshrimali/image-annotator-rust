@@ -22,11 +22,9 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
       - name: Build
-        run: cargo build --verbose
+        run: cargo build --release
       - name: Test
         run: cargo test
-      - name: Prepare Release
-        run: cargo build --release
       - name: Copy release to binaries
         run: cp target/release/annotator-rust binaries/Linux/image-annotator-rust && ls binaries/Linux/
       - uses: stefanzweifel/git-auto-commit-action@v4
@@ -47,11 +45,9 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
       - name: Build
-        run: cargo build --verbose
+        run: cargo build --release
       - name: Test
         run: cargo test
-      - name: Prepare Release
-        run: cargo build --release
       - name: Copy release to binaries
         run: cp target/release/annotator-rust binaries/OSX/image-annotator-rust && ls binaries/OSX/
       - uses: stefanzweifel/git-auto-commit-action@v4
@@ -70,11 +66,9 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
       - name: Build
-        run: cargo build --verbose
+        run: cargo build --release
       - name: Test
         run: cargo test
-      - name: Prepare Release
-        run: cargo build --release
       - name: Copy release to binaries
         run: cp target/release/annotator-rust.exe binaries/Windows/image-annotator-rust.exe && ls binaries/Windows/
       - uses: stefanzweifel/git-auto-commit-action@v4
