@@ -19,12 +19,21 @@ jobs:
       - name: Install GTK
         run: sudo apt -y update && sudo apt -y install libgtk-3-dev
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
       - name: Build
-        run: cargo build --verbose
-      - name: Prepare Release
         run: cargo build --release
+      - name: Test
+        run: cargo test
       - name: Copy release to binaries
-        run: cp target/release/annotator-rust binaries/Linux/
+        run: cp target/release/annotator-rust binaries/Linux/image-annotator-rust && ls binaries/Linux/
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Update Linux Binary
+          commit_user_name: krshrimali
+          commit_user_email: kushashwaravishrimali@gmail.com
+          commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
+          push_options: '--force'
 
   build-OSX:
     runs-on: macos-latest
@@ -33,21 +42,39 @@ jobs:
       - name: brew update
         run: brew update
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
       - name: Build
-        run: cargo build --verbose
-      - name: Prepare Release
         run: cargo build --release
+      - name: Test
+        run: cargo test
       - name: Copy release to binaries
-        run: cp target/release/annotator-rust binaries/OSX/
+        run: cp target/release/annotator-rust binaries/OSX/image-annotator-rust && ls binaries/OSX/
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Update OSX Binary
+          commit_user_name: krshrimali
+          commit_user_email: kushashwaravishrimali@gmail.com
+          commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
+          push_options: '--force'
 
   build-Windows:
     runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
       - name: Build
-        run: cargo build --verbose
-      - name: Prepare Release
         run: cargo build --release
+      - name: Test
+        run: cargo test
       - name: Copy release to binaries
-        run: cp target/release/annotator-rust.exe binaries/Windows/
+        run: cp target/release/annotator-rust.exe binaries/Windows/image-annotator-rust.exe && ls binaries/Windows/
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Update Windows Binary
+          commit_user_name: krshrimali
+          commit_user_email: kushashwaravishrimali@gmail.com
+          commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
+          push_options: '--force'

@@ -1,5 +1,5 @@
 use chrono::Local;
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, panic, path::PathBuf};
 
 use once_cell::sync::Lazy;
 use rfd::FileDialog;
@@ -70,37 +70,6 @@ struct ContainerCustomStyle {
     curr_theme: theme::Theme,
     bg_color: iced::Background,
 }
-
-// impl container::StyleSheet for ContainerCustomStyle {
-//     type Style = iced::theme::Theme;
-
-//     fn appearance(&self, _: &iced::Theme) -> container::Appearance {
-//         // TODO: Consider adding an option for theme here...
-//         // Also might consider bg as transparent instead...
-//         container::Appearance {
-//             border_radius: 2.0,
-//             border_width: 2.0,
-//             border_color: iced::Color::BLACK,
-//             background: Some(self.bg_color),
-//             ..Default::default()
-//         }
-//     }
-// }
-
-const DARK_BACKGROUND: Option<iced_core::Background> =
-    Some(iced_core::Background::Color(iced::Color {
-        r: 255.0,
-        g: 255.0,
-        b: 255.0,
-        a: 0.7,
-    }));
-const LIGHT_BACKGROUND: Option<iced_core::Background> =
-    Some(iced_core::Background::Color(iced::Color {
-        r: 0.0,
-        g: 0.0,
-        b: 0.0,
-        a: 0.9,
-    }));
 
 impl container::StyleSheet for ContainerCustomStyle {
     type Style = theme::Theme;
@@ -631,8 +600,11 @@ impl<'a> Step {
 
 pub fn fetch_image(all_images: Vec<PathBuf>, curr_idx: &usize) -> Result<Handle, std::io::Error> {
     // TODO: Set a default image to show that we are waiting for an image...// folder is empty
-    // TODO: Handle cases when the curr_idx is out of bound/negative
-    let path: PathBuf = all_images.get(*curr_idx).unwrap().to_owned();
+    let formatted_string = format!("Invalid index: {}", curr_idx);
+    let path: PathBuf = all_images
+        .get(*curr_idx)
+        .unwrap_or_else(|| panic!("{}", formatted_string.to_string()))
+        .to_owned();
     let img_validation_result = imghdr::from_file(path.clone());
     match img_validation_result {
         Ok(if_none) => match if_none {
@@ -681,7 +653,7 @@ fn write_json(json_obj: &AnnotatedStore) {
     }
 }
 
-#[derive(Deserialize, Serialize, Default, Debug, Clone)]
+#[derive(Deserialize, Serialize, Default, Debug, Clone, Eq, PartialEq)]
 pub struct Properties {
     pub index: usize,
     pub image_path: String,
@@ -690,7 +662,7 @@ pub struct Properties {
     pub last_updated: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Default, Debug, Clone)]
+#[derive(Deserialize, Serialize, Default, Debug, Clone, Eq, PartialEq)]
 pub struct AnnotatedStore {
     pub image_to_properties_map: HashMap<String, Vec<Properties>>,
 }
@@ -724,4 +696,92 @@ pub fn msg_check(msg: String) -> Option<String> {
     // } else {
     Some(msg)
     // }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::path::PathBuf;
+    use std::str::FromStr;
+    use std::sync::Once;
+
+    extern crate image;
+    use image::{ImageBuffer, Rgb};
+
+    static INIT: Once = Once::new();
+
+    pub fn initialize() {
+        INIT.call_once(|| {
+            // create sample test image
+            let _ = std::fs::create_dir("test");
+            // Just creating a sample image
+            let image = ImageBuffer::<Rgb<u8>, Vec<u8>>::new(10, 10);
+            image.save("test/sample.jpg").unwrap();
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid index")]
+    fn test_fetch_image_invalid_curr_idx() {
+        initialize();
+        let curr_idx: i32 = -1;
+        let path_buf = PathBuf::from_str("test/sample.jpg").unwrap();
+        let all_images = vec![path_buf];
+        let _ = fetch_image(all_images, &(curr_idx as usize));
+    }
+
+    #[test]
+    fn test_fetch_image_valid_curr_idx_invalid_image() {
+        initialize();
+        let curr_idx: usize = 0;
+        let path_buf = PathBuf::from_str("test/invalid_sample.jpg").unwrap();
+        let all_images = vec![path_buf];
+        let result = fetch_image(all_images, &curr_idx);
+        assert!(result.is_err());
+        // assert!(result
+        //     .err()
+        //     .unwrap()
+        //     .to_string()
+        //     .contains("No such file or directory"));
+    }
+
+    #[test]
+    fn test_fetch_image_valid_curr_idx_valid_image() {
+        initialize();
+        let curr_idx: usize = 0;
+        let path_buf = PathBuf::from_str("test/sample.jpg").unwrap();
+        let all_images = vec![path_buf];
+        let result = fetch_image(all_images, &curr_idx);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_init_json_obj_valid() {
+        initialize();
+        let folder_path = "test".to_string();
+        let all_paths: Vec<PathBuf> = vec![PathBuf::from_str("test/sample.jpg").unwrap()];
+        let json_obj = init_json_obj(folder_path.clone(), all_paths);
+        // Getting rid of timestamp for now, hard to compare
+        let last_updated_time = json_obj
+            .image_to_properties_map
+            .get(&folder_path)
+            .unwrap()
+            .get(0)
+            .unwrap()
+            .last_updated
+            .as_ref();
+        let expected_json_obj = AnnotatedStore {
+            image_to_properties_map: HashMap::from([(
+                folder_path,
+                vec![Properties {
+                    index: 0,
+                    image_path: "test/sample.jpg".to_string(),
+                    annotation: None,
+                    comments: None,
+                    last_updated: last_updated_time.cloned(),
+                }],
+            )]),
+        };
+        assert_eq!(json_obj, expected_json_obj);
+    }
 }
