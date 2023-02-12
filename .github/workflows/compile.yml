@@ -33,7 +33,7 @@ jobs:
           commit_user_name: krshrimali
           commit_user_email: kushashwaravishrimali@gmail.com
           commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
-          push_options: '--force'
+          push_options: '--dry-run'
 
   build-OSX:
     runs-on: macos-latest
@@ -56,7 +56,7 @@ jobs:
           commit_user_name: krshrimali
           commit_user_email: kushashwaravishrimali@gmail.com
           commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
-          push_options: '--force'
+          push_options: '--dry-run'
 
   build-Windows:
     runs-on: windows-latest
@@ -71,10 +71,22 @@ jobs:
         run: cargo test
       - name: Copy release to binaries
         run: cp target/release/annotator-rust.exe binaries/Windows/image-annotator-rust.exe && ls binaries/Windows/
+      - name: Git pull
+        run: git pull
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Update Windows Binary
           commit_user_name: krshrimali
           commit_user_email: kushashwaravishrimali@gmail.com
           commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
-          push_options: '--force'
+          push_options: '--dry-run'
+
+  push-binaries:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Git Push
+        run: git push
