@@ -717,7 +717,14 @@ mod test {
             // Just creating a sample image
             let image = ImageBuffer::<Rgb<u8>, Vec<u8>>::new(10, 10);
             image.save("test/sample.jpg").unwrap();
+            unsafe {
+                OUTPUT_PATH = Lazy::new(|| "test_output.json".to_string());
+            }
         });
+    }
+
+    pub fn exit() {
+        let _ = std::fs::remove_file("test_output.json");
     }
 
     #[test]
@@ -858,5 +865,29 @@ mod test {
             )]),
         };
         assert_eq!(serialized_obj, store);
+    }
+
+    #[test]
+    fn test_write_json_valid() {
+        initialize();
+        let store = AnnotatedStore {
+            image_to_properties_map: HashMap::from([(
+                String::from("test"),
+                vec![Properties {
+                    index: 0,
+                    image_path: String::from("test/sample.jpg"),
+                    annotation: None,
+                    comments: None,
+                    last_updated: None,
+                }],
+            )]),
+        };
+        write_json(&store);
+        unsafe {
+            let content = std::fs::read_to_string(OUTPUT_PATH.as_str()).ok().unwrap();
+            let v: AnnotatedStore = serde_json::from_str(&content).ok().unwrap();
+            assert_eq!(v, store);
+        }
+        exit();
     }
 }
