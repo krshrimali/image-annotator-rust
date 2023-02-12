@@ -84,13 +84,3 @@ jobs:
           commit_user_email: kushashwaravishrimali@gmail.com
           commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
           push_options: '--force'
-
-  push-binaries:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: ${{ github.head_ref }}
-      - name: Git Push
-        run: git push
