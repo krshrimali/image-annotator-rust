@@ -738,6 +738,7 @@ mod test {
         let all_images = vec![path_buf];
         let result = fetch_image(all_images, &curr_idx);
         assert!(result.is_err());
+        // TODO: This assertion fails on Windows, check what could be the error on Windows
         // assert!(result
         //     .err()
         //     .unwrap()
@@ -783,5 +784,79 @@ mod test {
             )]),
         };
         assert_eq!(json_obj, expected_json_obj);
+    }
+
+    #[test]
+    fn test_init_json_obj_empty() {
+        initialize();
+        let folder_path = "test".to_string();
+        let all_paths: Vec<PathBuf> = vec![];
+        let json_obj = init_json_obj(folder_path.clone(), all_paths);
+        let expected_json_obj = AnnotatedStore {
+            image_to_properties_map: HashMap::from([(folder_path, vec![])]),
+        };
+        assert_eq!(json_obj, expected_json_obj);
+    }
+
+    #[test]
+    fn test_deserialize_annotated_store_empty() {
+        let store = AnnotatedStore {
+            image_to_properties_map: HashMap::from([(String::from("test"), vec![])]),
+        };
+        let expected_string = r###"{"image_to_properties_map":{"test":[]}}"###;
+        if let Ok(res_string) = serde_json::to_string(&store) {
+            assert_eq!(res_string, expected_string);
+        }
+    }
+
+    #[test]
+    fn test_deserialize_annotated_store_non_empty() {
+        let store = AnnotatedStore {
+            image_to_properties_map: HashMap::from([(
+                String::from("test"),
+                vec![Properties {
+                    index: 0,
+                    image_path: String::from("test/sample.jpg"),
+                    annotation: None,
+                    comments: None,
+                    last_updated: None,
+                }],
+            )]),
+        };
+        let expected_string = r###"{"image_to_properties_map":{"test":[{"index":0,"image_path":"test/sample.jpg","annotation":null,"comments":null,"last_updated":null}]}}"###;
+        if let Ok(res_string) = serde_json::to_string(&store) {
+            assert_eq!(res_string, expected_string);
+        }
+    }
+
+    #[test]
+    fn test_serialize_annotated_store_empty() {
+        let raw_string = r###"{"image_to_properties_map":{"test":[]}}"###;
+        let serialized_obj: AnnotatedStore = serde_json::from_str(raw_string)
+            .unwrap_or_else(|_| panic!("{}", format!("Couldn't serialize {}", raw_string)));
+        let store = AnnotatedStore {
+            image_to_properties_map: HashMap::from([(String::from("test"), vec![])]),
+        };
+        assert_eq!(serialized_obj, store);
+    }
+
+    #[test]
+    fn test_serialize_annotated_store_non_empty() {
+        let raw_string = r###"{"image_to_properties_map":{"test":[{"index":0,"image_path":"test/sample.jpg","annotation":null,"comments":null,"last_updated":null}]}}"###;
+        let serialized_obj: AnnotatedStore = serde_json::from_str(raw_string)
+            .unwrap_or_else(|_| panic!("{}", format!("Couldn't serialize {}", raw_string)));
+        let store = AnnotatedStore {
+            image_to_properties_map: HashMap::from([(
+                String::from("test"),
+                vec![Properties {
+                    index: 0,
+                    image_path: String::from("test/sample.jpg"),
+                    annotation: None,
+                    comments: None,
+                    last_updated: None,
+                }],
+            )]),
+        };
+        assert_eq!(serialized_obj, store);
     }
 }
