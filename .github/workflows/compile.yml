@@ -27,13 +27,15 @@ jobs:
         run: cargo test
       - name: Copy release to binaries
         run: cp target/release/annotator-rust binaries/Linux/image-annotator-rust && ls binaries/Linux/
+      - name: Git pull
+        run: git pull
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Update Linux Binary
           commit_user_name: krshrimali
           commit_user_email: kushashwaravishrimali@gmail.com
           commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
-          push_options: '--dry-run'
+          push_options: '--force'
 
   build-OSX:
     runs-on: macos-latest
@@ -50,13 +52,15 @@ jobs:
         run: cargo test
       - name: Copy release to binaries
         run: cp target/release/annotator-rust binaries/OSX/image-annotator-rust && ls binaries/OSX/
+      - name: Git pull
+        run: git pull
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Update OSX Binary
           commit_user_name: krshrimali
           commit_user_email: kushashwaravishrimali@gmail.com
           commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
-          push_options: '--dry-run'
+          push_options: '--force'
 
   build-Windows:
     runs-on: windows-latest
@@ -79,7 +83,7 @@ jobs:
           commit_user_name: krshrimali
           commit_user_email: kushashwaravishrimali@gmail.com
           commit_author: Kushashwa Ravi Shrimali <kushashwaravishrimali@gmail.com>
-          push_options: '--dry-run'
+          push_options: '--force'
 
   push-binaries:
     runs-on: ubuntu-latest
