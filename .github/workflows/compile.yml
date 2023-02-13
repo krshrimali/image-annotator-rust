@@ -24,7 +24,7 @@ jobs:
       - name: Build
         run: cargo build --release
       - name: Test
-        run: cargo test
+        run: cargo test -- --test-threads 1
 
   build-OSX:
     runs-on: macos-latest
@@ -38,7 +38,7 @@ jobs:
       - name: Build
         run: cargo build --release
       - name: Test
-        run: cargo test
+        run: cargo test -- --test-threads 1
 
   build-Windows:
     runs-on: windows-latest
@@ -50,4 +50,4 @@ jobs:
       - name: Build
         run: cargo build --release
       - name: Test
-        run: cargo test
+        run: cargo test -- --test-threads 1
