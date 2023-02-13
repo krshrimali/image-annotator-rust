@@ -620,8 +620,9 @@ pub fn fetch_image(all_images: Vec<PathBuf>, curr_idx: &usize) -> Result<Handle,
 
 pub fn load_json_and_update(path_str: &String, json_obj: &AnnotatedStore) {
     if std::path::Path::new(path_str).exists() {
-        let content = std::fs::read_to_string(path_str).ok().unwrap();
-        let mut v: AnnotatedStore = serde_json::from_str(&content).ok().unwrap();
+        let content = std::fs::read_to_string(path_str).expect("Unable to read file output. Please check the file if anything was changed manually or delete and start afresh.");
+        let mut v: AnnotatedStore =
+            serde_json::from_str(&content).expect("Found invalid JSON file");
         // println!("Prop: {:?}", json_obj.image_to_properties_map);
         for (folder_path, val) in json_obj.image_to_properties_map.iter() {
             v.image_to_properties_map
@@ -884,9 +885,65 @@ mod test {
         };
         write_json(&store);
         unsafe {
-            let content = std::fs::read_to_string(OUTPUT_PATH.as_str()).ok().unwrap();
-            let v: AnnotatedStore = serde_json::from_str(&content).ok().unwrap();
+            let content =
+                std::fs::read_to_string(OUTPUT_PATH.as_str()).expect("Couldn't read file");
+            println!("content: {}", content);
+            let v: AnnotatedStore = serde_json::from_str(&content).expect("Invalid JSON file");
             assert_eq!(v, store);
+        }
+        exit();
+    }
+
+    #[test]
+    fn test_load_json_and_update_valid() {
+        initialize();
+        let first_store = AnnotatedStore {
+            image_to_properties_map: HashMap::from([(
+                String::from("test"),
+                vec![Properties {
+                    index: 0,
+                    image_path: String::from("test/sample.jpg"),
+                    annotation: None,
+                    comments: None,
+                    last_updated: None,
+                }],
+            )]),
+        };
+
+        unsafe {
+            load_json_and_update(&OUTPUT_PATH, &first_store);
+            let json_file = std::fs::File::open(OUTPUT_PATH.to_string())
+                .expect("Couldn't read the file properly");
+            println!("{:?}", json_file.metadata());
+            let output_json: AnnotatedStore =
+                serde_json::from_reader(json_file).expect("Invalid JSON file");
+            assert_eq!(output_json, first_store);
+        }
+
+        let second_store = AnnotatedStore {
+            image_to_properties_map: HashMap::from([(
+                String::from("test"),
+                vec![Properties {
+                    index: 1,
+                    image_path: String::from("test/sample2.jpeg"),
+                    annotation: None,
+                    comments: None,
+                    last_updated: None,
+                }],
+            )]),
+        };
+
+        unsafe {
+            load_json_and_update(&OUTPUT_PATH, &second_store);
+        }
+
+        // try reading JSON file now
+        unsafe {
+            let json_file = std::fs::File::open(OUTPUT_PATH.to_string())
+                .expect("Couldn't read the file properly");
+            let output_json: AnnotatedStore =
+                serde_json::from_reader(json_file).expect("Invalid JSON file");
+            assert_eq!(output_json, second_store)
         }
         exit();
     }
