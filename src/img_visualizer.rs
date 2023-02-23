@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::Once;
 
 use iced::{
     theme,
@@ -286,5 +287,45 @@ impl Steps {
 
     pub fn title(&self) -> String {
         self.steps[self.current].title()
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    static INIT: Once = Once::new();
+
+    fn get_empty_folder_path() -> String {
+        String::from("empty_folder")
+    }
+
+    fn get_non_empty_folder_path() -> String {
+        String::from("non_empty_folder")
+    }
+
+    pub fn initialize() {
+        INIT.call_once(|| {
+            // TODO: Add return type to the closure to support ? for these
+            let _ = std::fs::create_dir(get_empty_folder_path());
+            let _ = std::fs::create_dir(get_non_empty_folder_path());
+        });
+    }
+
+    // Testing YTCreator struct methods
+    #[test]
+    fn test_get_all_images_empty_folder() {
+        initialize();
+        let imges = get_all_images(&get_empty_folder_path());
+        assert_eq!(imges.len(), 0);
+        // Create a sample folder 
+    }
+
+    #[test]
+    fn test_get_all_images_valid_but_empty_folder() {
+        initialize();
+        let imges = get_all_images(&get_non_empty_folder_path());
+        assert_eq!(imges.len(), 0);
     }
 }
