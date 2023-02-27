@@ -290,26 +290,18 @@ impl Steps {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;
 
     static INIT: Once = Once::new();
-
-    fn get_empty_folder_path() -> String {
-        String::from("empty_folder")
-    }
-
-    fn get_non_empty_folder_path() -> String {
-        String::from("non_empty_folder")
-    }
+    static EMPTY_FOLDER_PATH: &str = "empty_folder";
+    static NON_EMPTY_FOLDER_PATH: &str = "non_empty_folder";
 
     pub fn initialize() {
         INIT.call_once(|| {
-            // TODO: Add return type to the closure to support ? for these
-            let _ = std::fs::create_dir(get_empty_folder_path());
-            let _ = std::fs::create_dir(get_non_empty_folder_path());
+            let _ = std::fs::create_dir(EMPTY_FOLDER_PATH);
+            let _ = std::fs::create_dir(NON_EMPTY_FOLDER_PATH);
         });
     }
 
@@ -317,15 +309,15 @@ mod test {
     #[test]
     fn test_get_all_images_empty_folder() {
         initialize();
-        let imges = get_all_images(&get_empty_folder_path());
+        let imges = get_all_images(&String::from(EMPTY_FOLDER_PATH));
         assert_eq!(imges.len(), 0);
-        // Create a sample folder 
+        // Create a sample folder
     }
 
     #[test]
     fn test_get_all_images_valid_but_empty_folder() {
         initialize();
-        let imges = get_all_images(&get_non_empty_folder_path());
+        let imges = get_all_images(&String::from(NON_EMPTY_FOLDER_PATH));
         assert_eq!(imges.len(), 0);
     }
 }
