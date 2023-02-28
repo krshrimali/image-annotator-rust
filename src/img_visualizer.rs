@@ -203,6 +203,7 @@ impl Steps {
             new_idx,
             new_image_prop_map,
             new_annotation,
+            new_updated_timestamp,
             new_correct_items,
             new_comment,
             new_steps_obj,
@@ -243,6 +244,15 @@ impl Steps {
                 .get_mut(self.curr_idx)
                 .unwrap()
                 .comments = new_comment.clone();
+            if let Some(final_ts) = new_updated_timestamp {
+                self.json_obj
+                    .image_to_properties_map
+                    .get_mut(&self.folder_path)
+                    .unwrap()
+                    .get_mut(self.curr_idx)
+                    .unwrap()
+                    .last_updated = Some(final_ts);
+            }
         }
         if let Some(msg_valid) = new_comment {
             self.new_message = msg_valid;
