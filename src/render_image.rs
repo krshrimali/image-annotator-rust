@@ -436,7 +436,7 @@ impl<'a> Step {
             let mut input = text_input(
                 "(Optional) Type your reason here...",
                 &obj.new_message,
-                ImageStepMessage::CommentType,
+                // ImageStepMessage::CommentType,
             )
             .padding(10);
 
@@ -454,7 +454,7 @@ impl<'a> Step {
 
             row![input, button]
                 .spacing(10)
-                .align_items(iced::Alignment::Fill)
+/*                 .align_items(iced::Alignment::End) */
         };
         let img_handle = fetch_image(obj.all_images.clone(), &obj.curr_idx);
 
@@ -572,7 +572,8 @@ impl<'a> Step {
                         bg_color: iced::Background::Color(iced::Color::WHITE),
                     },
                 )))
-                .height(Length::Units(400)) // TOOD: Instead of hard-coding this year, find current windows' height - and make this 40% of that height.
+                // .height((400)) // TOOD: Instead of hard-coding this year, find current windows' height - and make this 40% of that height.
+                .height(400)
                 .center_y(),
                 image_option_buttons,
                 info_row,
