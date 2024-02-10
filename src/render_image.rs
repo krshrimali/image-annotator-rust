@@ -6,13 +6,14 @@ use rfd::FileDialog;
 
 use iced::{
     theme,
-    widget::{
-        button, container, horizontal_space, image, radio, row, text, text_input, Button, Column,
-        Container,
-    },
     Element, Length, Renderer,
 };
-use iced_native::{column, image::Handle};
+use iced_widget:: {
+    button, container, horizontal_space, image, radio, row, text, text_input, Button, Column,
+    Container,column
+};
+use iced_widget::image::Handle;
+use iced_core::Alignment;
 use serde::{Deserialize, Serialize};
 
 use super::{get_all_images, Steps};
@@ -91,7 +92,7 @@ impl container::StyleSheet for ContainerCustomStyle {
         container::Appearance {
             text_color: Some(text_color),
             background: bg,
-            border_radius: 2.0,
+            border_radius: 2.0.into(),
             border_width: 2.0,
             border_color: iced::Color::BLACK,
         }
@@ -284,20 +285,20 @@ impl<'a> Step {
             .iter()
             .fold(
                 row![text("Choose a theme:")].spacing(10),
-                |column: iced_native::widget::row::Row<'_, ImageStepMessage, Renderer>, theme| {
-                    column.push(radio(
+                |column: iced_native::widget::row::Row<'_, ImageStepMessage, Renderer>, theme: ThemeType| {
+                    let element = radio(
                         format!("{:?}", theme),
-                        *theme,
+                        theme,
                         Some(match obj.theme {
                             iced::Theme::Dark => ThemeType::Dark,
                             iced::Theme::Light => ThemeType::Light,
                             iced::Theme::Custom { .. } => ThemeType::Custom,
                         }),
                         ImageStepMessage::ThemeChanged,
-                    ))
+                    );
+                    column.push(element);
                 },
             );
-
         let choose_theme_content = column![choose_theme]
             .spacing(20)
             .padding(20)
@@ -312,7 +313,7 @@ impl<'a> Step {
                 column![
                     container(row![choose_theme_content
                         .width(Length::Fill)
-                        .align_items(iced::Alignment::Start)]),
+                        .align_items(Alignment::Start)]),
                     container(row![file_choose_button])
                 ]
             } else {
@@ -322,7 +323,7 @@ impl<'a> Step {
                 column![
                     container(row![choose_theme_content
                         .width(Length::Fill)
-                        .align_items(iced::Alignment::Start)]),
+                        .align_items(Alignment::Start)]),
                     container(row![file_choose_button])
                 ]
             }
@@ -383,7 +384,7 @@ impl<'a> Step {
             .iter()
             .fold(
                 row![text("Choose a theme:")].spacing(10),
-                |column: iced_native::widget::row::Row<'_, ImageStepMessage, Renderer>, theme| {
+                |column: iced_native::widget::row::Row<'_, ImageStepMessage, Renderer>, theme: ThemeType| {
                     column.push(radio(
                         format!("{:?}", theme),
                         *theme,
