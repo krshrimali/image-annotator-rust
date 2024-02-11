@@ -329,7 +329,7 @@ impl<'a> Step {
                 column![
                     container(row![choose_theme_content
                         .width(Length::Fill)
-                        .align_items(iced_core::Alignment::Start)]),
+                        .align_items(iced::Alignment::Start)]),
                     file_choose_button
                 ]
                 .into()
@@ -574,9 +574,9 @@ impl<'a> Step {
             ]
             .into(),
             None => column![
-                // container(row![choose_theme_content
-                //     .width(Length::Fill)
-                //     .align_items(iced::Alignment::Start)]),
+                container(row![choose_theme_content
+                    .width(Length::Fill)
+                    .align_items(iced::Alignment::Start)]),
                 container(row![
                     horizontal_space(Length::Fill),
                     text(error_msg.unwrap_or_default()),
