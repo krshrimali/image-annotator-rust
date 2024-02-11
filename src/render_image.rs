@@ -326,22 +326,24 @@ impl<'a> Step {
                     button(text("Select folder"))
                         .on_press(ImageStepMessage::ChooseFolderPath())
                         .style(theme::Button::Secondary);
-                column![container(row![choose_theme_content
-                    .width(Length::Fill)
-                    .align_items(iced_core::Alignment::Start)]),]
+                column![
+                    container(row![choose_theme_content
+                        .width(Length::Fill)
+                        .align_items(iced_core::Alignment::Start)]),
+                    file_choose_button
+                ]
                 .into()
             } else {
-                // let file_choose_button = button(text("Select folder"))
-                //     .on_press(ImageStepMessage::ChooseFolderPath())
-                // .style(theme::Button::Primary);
-                // column![
-                //     container(row![choose_theme_content
-                //         .width(Length::Fill)
-                //         .align_items(iced_core::Alignment::Start)]))
-                // container(row![file_choose_button.into()])
-                column![container(row![choose_theme_content
-                    .width(Length::Fill)
-                    .align_items(iced_core::Alignment::Start)])]
+                let file_choose_button: Button<'_, ImageStepMessage> =
+                    button(text("Select folder"))
+                        .on_press(ImageStepMessage::ChooseFolderPath())
+                        .style(theme::Button::Primary);
+                column![
+                    container(row![choose_theme_content
+                        .width(Length::Fill)
+                        .align_items(iced_core::Alignment::Start)]),
+                    file_choose_button
+                ]
                 .into()
             }
         }
@@ -397,29 +399,6 @@ impl<'a> Step {
     }
 
     pub fn images(obj: &Steps, theme: &theme::Theme) -> Element<'a, ImageStepMessage> {
-        // let choose_theme = [ThemeType::Dark, ThemeType::Light, ThemeType::Custom]
-        //     .iter()
-        //     .fold(
-        //         row![text("Choose a theme:")].spacing(10),
-        //         |column: iced_native::widget::row::Row<'_, ImageStepMessage, Renderer>, theme: ThemeType| {
-        //             column.push(radio(
-        //                 format!("{:?}", theme),
-        //                 *theme,
-        //                 Some(match obj.theme {
-        //                     iced::Theme::Dark => ThemeType::Dark,
-        //                     iced::Theme::Light => ThemeType::Light,
-        //                     iced::Theme::Custom { .. } => ThemeType::Custom,
-        //                 }),
-        //                 ImageStepMessage::ThemeChanged,
-        //             ))
-        //         },
-        //     );
-
-        // let choose_theme_content = column![choose_theme]
-        //     .spacing(20)
-        //     .padding(20)
-        //     .max_width(600)
-        //     .width(Length::Fill);
         let export_btn = button(text("Export").size(20)).on_press(ImageStepMessage::Export());
         let correct_btn =
             button(text("Mark as Correct").size(20)).on_press(ImageStepMessage::MarkAsCorrect());
@@ -558,23 +537,42 @@ impl<'a> Step {
             ),
         };
 
+        let choose_theme: Column<'_, ImageStepMessage, _> = column![
+            iced::widget::text("Theme:"),
+            pick_list(
+                ThemeType::ALL,
+                Some(match obj.theme {
+                    iced::Theme::Dark => ThemeType::Dark,
+                    iced::Theme::Light => ThemeType::Light,
+                    iced::Theme::Custom { .. } => ThemeType::Custom,
+                }),
+                ImageStepMessage::ThemeChanged
+            ),
+            // .width(Length::Fill),
+        ]
+        .spacing(10);
+
+        let choose_theme_content: Column<'_, ImageStepMessage> = column![choose_theme]
+            .spacing(20)
+            .padding(20)
+            .max_width(600)
+            .width(Length::Fill);
+
         match img_viewer {
-            Some(valid_img_viewer) => {
-                column![
-                    // container(row![choose_theme_content
-                    //     .width(Length::Fill)
-                    //     .align_items(iced::Alignment::Start)]),
-                    container(row![
-                        horizontal_space(Length::Fill),
-                        valid_img_viewer,
-                        horizontal_space(Length::Fill)
-                    ]),
-                    image_option_buttons,
-                    info_row,
-                    next_prev_buttons_row.spacing(20).padding(10)
-                ]
-                .into()
-            }
+            Some(valid_img_viewer) => column![
+                container(row![choose_theme_content
+                    .width(Length::Fill)
+                    .align_items(iced::Alignment::Start)]),
+                container(row![
+                    horizontal_space(Length::Fill),
+                    valid_img_viewer,
+                    horizontal_space(Length::Fill)
+                ]),
+                image_option_buttons,
+                info_row,
+                next_prev_buttons_row.spacing(20).padding(10)
+            ]
+            .into(),
             None => column![
                 // container(row![choose_theme_content
                 //     .width(Length::Fill)
