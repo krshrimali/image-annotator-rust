@@ -181,7 +181,8 @@ impl Steps {
         json_obj: AnnotatedStore,
     ) -> Steps {
         Steps {
-            steps: vec![Step::WelcomeWithFolderChoose, Step::Images, Step::End],
+            // FIXME: Removed Step::End temporarily
+            steps: vec![Step::WelcomeWithFolderChoose, Step::Images],
             folder_path,
             curr_idx,
             all_images,
