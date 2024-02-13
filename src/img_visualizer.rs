@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::Once;
 
 use iced::{
     theme,
@@ -203,6 +204,7 @@ impl Steps {
             new_idx,
             new_image_prop_map,
             new_annotation,
+            new_updated_timestamp,
             new_correct_items,
             new_comment,
             new_steps_obj,
@@ -243,6 +245,15 @@ impl Steps {
                 .get_mut(self.curr_idx)
                 .unwrap()
                 .comments = new_comment.clone();
+            if let Some(final_ts) = new_updated_timestamp {
+                self.json_obj
+                    .image_to_properties_map
+                    .get_mut(&self.folder_path)
+                    .unwrap()
+                    .get_mut(self.curr_idx)
+                    .unwrap()
+                    .last_updated = Some(final_ts);
+            }
         }
         if let Some(msg_valid) = new_comment {
             self.new_message = msg_valid;
@@ -287,5 +298,37 @@ impl Steps {
 
     pub fn title(&self) -> String {
         self.steps[self.current].title()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    static INIT: Once = Once::new();
+    static EMPTY_FOLDER_PATH: &str = "empty_folder";
+    static NON_EMPTY_FOLDER_PATH: &str = "non_empty_folder";
+
+    pub fn initialize() {
+        INIT.call_once(|| {
+            let _ = std::fs::create_dir(EMPTY_FOLDER_PATH);
+            let _ = std::fs::create_dir(NON_EMPTY_FOLDER_PATH);
+        });
+    }
+
+    // Testing YTCreator struct methods
+    #[test]
+    fn test_get_all_images_empty_folder() {
+        initialize();
+        let imges = get_all_images(&String::from(EMPTY_FOLDER_PATH));
+        assert_eq!(imges.len(), 0);
+        // Create a sample folder
+    }
+
+    #[test]
+    fn test_get_all_images_valid_but_empty_folder() {
+        initialize();
+        let imges = get_all_images(&String::from(NON_EMPTY_FOLDER_PATH));
+        assert_eq!(imges.len(), 0);
     }
 }

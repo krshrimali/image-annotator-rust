@@ -130,6 +130,7 @@ impl<'a> Step {
         usize,                            // new idx
         HashMap<String, Vec<Properties>>, // new prop map
         Option<bool>,                     // new annotation value
+        Option<String>,
         Vec<Option<bool>>,                // new list of annotation values
         Option<String>,
         Steps, // revised Steps
@@ -167,6 +168,8 @@ impl<'a> Step {
             }
             None => None,
         };
+
+        let mut last_updated: Option<String> = None;
 
         match msg {
             ImageStepMessage::Next() => {
@@ -207,6 +210,7 @@ impl<'a> Step {
                 new_steps_obj.new_message.clear();
                 new_steps_obj.new_message = entered_comment;
                 new_steps_obj.incorrect_btn_clicked = false;
+                last_updated = Some(Local::now().to_string());
                 // NOTE: Enable this if you want to disable "Send" button after clicking it (make msg required)
                 // new_comment = None;
             }
@@ -272,6 +276,7 @@ impl<'a> Step {
             *curr_idx,
             json_obj.image_to_properties_map,
             new_annotation,
+            last_updated,
             correct_items.to_vec(),
             new_comment,
             new_steps_obj,
