@@ -1,19 +1,16 @@
 use chrono::Local;
+use iced::widget::pick_list;
 use std::{collections::HashMap, panic, path::PathBuf};
 
 use once_cell::sync::Lazy;
 use rfd::FileDialog;
 
-use iced::{
-    theme,
-    Element, Length, Renderer,
-};
-use iced_widget:: {
-    button, container, horizontal_space, image, radio, row, text, text_input, Button, Column,
-    Container,column
-};
+use iced::{theme, Element, Length, Renderer};
 use iced_widget::image::Handle;
-use iced_core::Alignment;
+use iced_widget::{
+    button, column, container, horizontal_space, image, row, text, text_input, Button, Column,
+    Container,
+};
 use serde::{Deserialize, Serialize};
 
 use super::{get_all_images, Steps};
@@ -23,6 +20,25 @@ pub enum ThemeType {
     Light,
     Dark,
     Custom,
+}
+
+impl ThemeType {
+    pub const ALL: &'static [Self] = &[Self::Light, Self::Dark, Self::Custom];
+
+    // implement display
+    pub fn as_display(&self) -> &str {
+        match self {
+            Self::Light => "Light",
+            Self::Dark => "Dark",
+            Self::Custom => "Custom",
+        }
+    }
+}
+
+impl std::fmt::Display for ThemeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.as_display())
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -64,7 +80,7 @@ pub enum ImageStepMessage {
 pub enum Step {
     WelcomeWithFolderChoose,
     Images,
-    End,
+    // End,
 }
 
 struct ContainerCustomStyle {
@@ -199,7 +215,9 @@ impl<'a> Step {
                 new_comment = Some(entered_comment);
             }
             ImageStepMessage::ChooseFolderPath() => {
+                println!("Starting the picker folder");
                 let new_folder_path = FileDialog::new().set_directory(".").pick_folder();
+                println!("Started the picker folder");
 
                 if let Some(valid_path) = new_folder_path {
                     let new_folder_path_as_str = valid_path.into_os_string().into_string().unwrap();
@@ -264,42 +282,39 @@ impl<'a> Step {
         match self {
             Step::WelcomeWithFolderChoose => true,
             Step::Images => true,
-            Step::End => false,
+            // Step::End => false,
         }
     }
 
-    pub fn view(&self, obj: &Steps) -> Element<ImageStepMessage> {
+    pub fn view(&'a self, obj: &'a Steps) -> Element<ImageStepMessage> {
         match self {
-            Step::WelcomeWithFolderChoose => Self::welcome(obj).into(),
-            Step::Images => Self::images(obj, &obj.theme).into(),
-            Step::End => Self::end().into(),
+            Step::WelcomeWithFolderChoose => Self::welcome(obj),
+            Step::Images => Self::images(obj, &obj.theme),
+            // Step::End => Self::end(),
         }
     }
 
-    pub fn container_(title: &str) -> Column<'a, ImageStepMessage, Renderer> {
+    pub fn container_(title: &str) -> Column<'a, Message, Renderer> {
         column![text(title).size(50)].spacing(20)
     }
 
-    pub fn welcome(obj: &Steps) -> Column<'a, ImageStepMessage, Renderer> {
-        let choose_theme = [ThemeType::Dark, ThemeType::Light, ThemeType::Custom]
-            .iter()
-            .fold(
-                row![text("Choose a theme:")].spacing(10),
-                |column: iced_native::widget::row::Row<'_, ImageStepMessage, Renderer>, theme: ThemeType| {
-                    let element = radio(
-                        format!("{:?}", theme),
-                        theme,
-                        Some(match obj.theme {
-                            iced::Theme::Dark => ThemeType::Dark,
-                            iced::Theme::Light => ThemeType::Light,
-                            iced::Theme::Custom { .. } => ThemeType::Custom,
-                        }),
-                        ImageStepMessage::ThemeChanged,
-                    );
-                    column.push(element);
-                },
-            );
-        let choose_theme_content = column![choose_theme]
+    pub fn welcome(obj: &Steps) -> Element<ImageStepMessage> {
+        let choose_theme: Column<'_, ImageStepMessage, _> = column![
+            iced::widget::text("Theme:"),
+            pick_list(
+                ThemeType::ALL,
+                Some(match obj.theme {
+                    iced::Theme::Dark => ThemeType::Dark,
+                    iced::Theme::Light => ThemeType::Light,
+                    iced::Theme::Custom { .. } => ThemeType::Custom,
+                }),
+                ImageStepMessage::ThemeChanged
+            ),
+            // .width(Length::Fill),
+        ]
+        .spacing(10);
+
+        let choose_theme_content: Column<'_, ImageStepMessage> = column![choose_theme]
             .spacing(20)
             .padding(20)
             .max_width(600)
@@ -307,25 +322,29 @@ impl<'a> Step {
 
         unsafe {
             if FOLDER_FOUND {
-                let file_choose_button = button(text("Select folder"))
-                    .on_press(ImageStepMessage::ChooseFolderPath())
-                    .style(theme::Button::Secondary);
+                let file_choose_button: Button<'_, ImageStepMessage> =
+                    button(text("Select folder"))
+                        .on_press(ImageStepMessage::ChooseFolderPath())
+                        .style(theme::Button::Secondary);
                 column![
                     container(row![choose_theme_content
                         .width(Length::Fill)
-                        .align_items(Alignment::Start)]),
-                    container(row![file_choose_button])
+                        .align_items(iced::Alignment::Start)]),
+                    file_choose_button
                 ]
+                .into()
             } else {
-                let file_choose_button = button(text("Select folder"))
-                    .on_press(ImageStepMessage::ChooseFolderPath())
-                    .style(theme::Button::Primary);
+                let file_choose_button: Button<'_, ImageStepMessage> =
+                    button(text("Select folder"))
+                        .on_press(ImageStepMessage::ChooseFolderPath())
+                        .style(theme::Button::Primary);
                 column![
                     container(row![choose_theme_content
                         .width(Length::Fill)
-                        .align_items(Alignment::Start)]),
-                    container(row![file_choose_button])
+                        .align_items(iced_core::Alignment::Start)]),
+                    file_choose_button
                 ]
+                .into()
             }
         }
     }
@@ -379,30 +398,7 @@ impl<'a> Step {
         .width(Length::Fill)
     }
 
-    pub fn images(obj: &Steps, theme: &theme::Theme) -> Column<'a, ImageStepMessage, Renderer> {
-        let choose_theme = [ThemeType::Dark, ThemeType::Light, ThemeType::Custom]
-            .iter()
-            .fold(
-                row![text("Choose a theme:")].spacing(10),
-                |column: iced_native::widget::row::Row<'_, ImageStepMessage, Renderer>, theme: ThemeType| {
-                    column.push(radio(
-                        format!("{:?}", theme),
-                        *theme,
-                        Some(match obj.theme {
-                            iced::Theme::Dark => ThemeType::Dark,
-                            iced::Theme::Light => ThemeType::Light,
-                            iced::Theme::Custom { .. } => ThemeType::Custom,
-                        }),
-                        ImageStepMessage::ThemeChanged,
-                    ))
-                },
-            );
-
-        let choose_theme_content = column![choose_theme]
-            .spacing(20)
-            .padding(20)
-            .max_width(600)
-            .width(Length::Fill);
+    pub fn images(obj: &Steps, theme: &theme::Theme) -> Element<'a, ImageStepMessage> {
         let export_btn = button(text("Export").size(20)).on_press(ImageStepMessage::Export());
         let correct_btn =
             button(text("Mark as Correct").size(20)).on_press(ImageStepMessage::MarkAsCorrect());
@@ -453,9 +449,8 @@ impl<'a> Step {
                 button = button.on_press(ImageStepMessage::CommentAdded(valid_msg));
             }
 
-            row![input, button]
-                .spacing(10)
-/*                 .align_items(iced::Alignment::End) */
+            row![input, button].spacing(10)
+            /*                 .align_items(iced::Alignment::End) */
         };
         let img_handle = fetch_image(obj.all_images.clone(), &obj.curr_idx);
 
@@ -542,22 +537,42 @@ impl<'a> Step {
             ),
         };
 
+        let choose_theme: Column<'_, ImageStepMessage, _> = column![
+            iced::widget::text("Theme:"),
+            pick_list(
+                ThemeType::ALL,
+                Some(match obj.theme {
+                    iced::Theme::Dark => ThemeType::Dark,
+                    iced::Theme::Light => ThemeType::Light,
+                    iced::Theme::Custom { .. } => ThemeType::Custom,
+                }),
+                ImageStepMessage::ThemeChanged
+            ),
+            // .width(Length::Fill),
+        ]
+        .spacing(10);
+
+        let choose_theme_content: Column<'_, ImageStepMessage> = column![choose_theme]
+            .spacing(20)
+            .padding(20)
+            .max_width(600)
+            .width(Length::Fill);
+
         match img_viewer {
-            Some(valid_img_viewer) => {
-                column![
-                    container(row![choose_theme_content
-                        .width(Length::Fill)
-                        .align_items(iced::Alignment::Start)]),
-                    container(row![
-                        horizontal_space(Length::Fill),
-                        valid_img_viewer,
-                        horizontal_space(Length::Fill)
-                    ]),
-                    image_option_buttons,
-                    info_row,
-                    next_prev_buttons_row.spacing(20).padding(10)
-                ]
-            }
+            Some(valid_img_viewer) => column![
+                container(row![choose_theme_content
+                    .width(Length::Fill)
+                    .align_items(iced::Alignment::Start)]),
+                container(row![
+                    horizontal_space(Length::Fill),
+                    valid_img_viewer,
+                    horizontal_space(Length::Fill)
+                ]),
+                image_option_buttons,
+                info_row,
+                next_prev_buttons_row.spacing(20).padding(10)
+            ]
+            .into(),
             None => column![
                 container(row![choose_theme_content
                     .width(Length::Fill)
@@ -579,19 +594,42 @@ impl<'a> Step {
                 image_option_buttons,
                 info_row,
                 next_prev_buttons_row.spacing(20).padding(10)
-            ],
+            ]
+            .into(),
         }
     }
 
-    pub fn end() -> Column<'a, ImageStepMessage, Renderer> {
-        column![container(Self::container_("End!")).center_x().center_y()]
+    pub fn end() -> Element<'a, ImageStepMessage> {
+        // container(column![container(Self::container_("End!"))
+        //     .center_x()
+        //     .center_y()])
+        // .into()
+        container(row![text("End!")])
+            .style(iced::theme::Container::Custom(Box::new(
+                ContainerCustomStyle {
+                    curr_theme: iced::Theme::Light,
+                    bg_color: iced::Background::Color(iced::Color::WHITE),
+                },
+            )))
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .center_x()
+            .center_y()
+            .into()
     }
+
+    // pub fn end() -> Element<'a, ImageStepMessage> {
+    //     container(column![container(Self::container_("End!"))
+    //         .center_x()
+    //         .center_y()])
+    //     // .into()
+    // }
 
     pub fn title(&self) -> String {
         match self {
             Step::WelcomeWithFolderChoose => "Welcome".to_string(),
             Step::Images => "Images".to_string(),
-            Step::End => "End".to_string(),
+            // Step::End => "End".to_string(),
         }
     }
 
