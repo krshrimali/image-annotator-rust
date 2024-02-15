@@ -1,3 +1,26 @@
+## Description
+
+Image Annotator software is a software built in Rust (_literally everything_) which lets you go through all the files in a given folder and gives an option for the user to mark the image as correct/incorrect (binary) - with an optional feature to add comment on why it was incorrect. These features come along with the ability for the image to be panned and zoomed in.
+
+The output result is stored in the format of `output.json` file in your home folder.
+
+## Installation
+
+For now, please consider building this application from source until version 1.0.0 is released. Follow the following steps are making sure that you've got cargo installed: https://doc.rust-lang.org/cargo/getting-started/installation.html.
+
+- Build the project: `cargo build --release`.
+- Run the compiled binary: `./target/release/annotator-rust`.
+
+For those who are using Wayland + NVIDIA, if you aren't unable to click, please be aware that there are few issues around using Vulkan with WebGPU, hence prefer using:
+
+```bash
+export WGPU_BACKEND=metal cargo run
+# OR
+export WGPU_BACKEND=gl cargo run
+```
+
+For available backends and options, please check https://docs.rs/wgpu/latest/wgpu/enum.Backend.html for more details.
+
 ## Key Features
 
 **Note**: I'm actively working on this app's first release. Please hop on to the [issues page](https://github.com/krshrimali/image-annotator-rust-app/issues) if you would like to contribute.
