@@ -5,12 +5,12 @@ use std::{collections::HashMap, panic, path::PathBuf};
 use once_cell::sync::Lazy;
 use rfd::FileDialog;
 
-use iced::{theme, Element, Length, Renderer};
-use iced_widget::image::Handle;
-use iced_widget::{
+use iced::widget::{
     button, column, container, horizontal_space, image, row, text, text_input, Button, Column,
     Container,
 };
+use iced::{theme, Element, Length, Renderer};
+use iced_widget::image::Handle;
 use serde::{Deserialize, Serialize};
 
 use super::{get_all_images, Steps};
@@ -72,7 +72,7 @@ pub enum ImageStepMessage {
     Export(),
     ChooseFolderPath(),
     CommentAdded(String),
-    CommentType(String),
+    // CommentType(String),
     ThemeChanged(ThemeType),
 }
 
@@ -210,14 +210,12 @@ impl<'a> Step {
                 // NOTE: Enable this if you want to disable "Send" button after clicking it (make msg required)
                 // new_comment = None;
             }
-            ImageStepMessage::CommentType(entered_comment) => {
-                new_steps_obj.new_message = entered_comment.clone();
-                new_comment = Some(entered_comment);
-            }
+            // ImageStepMessage::CommentType(entered_comment) => {
+            //     new_steps_obj.new_message = entered_comment.clone();
+            //     new_comment = Some(entered_comment);
+            // }
             ImageStepMessage::ChooseFolderPath() => {
-                println!("Starting the picker folder");
                 let new_folder_path = FileDialog::new().set_directory(".").pick_folder();
-                println!("Started the picker folder");
 
                 if let Some(valid_path) = new_folder_path {
                     let new_folder_path_as_str = valid_path.into_os_string().into_string().unwrap();
@@ -326,25 +324,27 @@ impl<'a> Step {
                     button(text("Select folder"))
                         .on_press(ImageStepMessage::ChooseFolderPath())
                         .style(theme::Button::Secondary);
-                column![
+                let choose_column = column![
                     container(row![choose_theme_content
                         .width(Length::Fill)
                         .align_items(iced::Alignment::Start)]),
                     file_choose_button
                 ]
-                .into()
+                .into();
+                choose_column
             } else {
                 let file_choose_button: Button<'_, ImageStepMessage> =
                     button(text("Select folder"))
                         .on_press(ImageStepMessage::ChooseFolderPath())
                         .style(theme::Button::Primary);
-                column![
+                let choose_column = column![
                     container(row![choose_theme_content
                         .width(Length::Fill)
                         .align_items(iced_core::Alignment::Start)]),
                     file_choose_button
                 ]
-                .into()
+                .into();
+                choose_column
             }
         }
     }
